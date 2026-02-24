@@ -1,11 +1,5 @@
 import { CATEGORY_BY_LANG, GRID, K, REG, SUPPORTED_LANGS, gameI18n, mTypes, names } from "./game/constants.js";
-import {
-  initFirebase,
-  isFirebaseEnabled,
-  onUserChanged,
-  loadUserData,
-  saveUserData,
-} from "./firebase/storage.js";
+let firebaseApi = null;
 
 const e = { fs: document.getElementById('fullscreenBtn'), deckSel: document.getElementById('gameDeckSelect'), loadDeck: document.getElementById('loadDeckBtn'), reset: document.getElementById('resetGameBtn'), handT: document.getElementById('handToggleBtn'), showHand: document.getElementById('showHandBtn'), draw: document.getElementById('drawBtn'), viewDeck: document.getElementById('viewDeckBtn'), shuffle: document.getElementById('shuffleDeckBtn'), deckMenu: document.getElementById('deckMenuBtn'), deckZone: document.getElementById('deckZone'), deckCount: document.getElementById('deckCount'), handCards: document.getElementById('handCards'), discardCount: document.getElementById('discardCount'), discardZone: document.getElementById('discardZone'), discardTop: document.getElementById('discardTopCard'), board: document.getElementById('boardCardsLayer'), cardModal: document.getElementById('cardModal'), closeCard: document.getElementById('closeCardModalBtn'), cardContent: document.getElementById('cardModalContent'), disModal: document.getElementById('discardModal'), closeDis: document.getElementById('closeDiscardModalBtn'), disList: document.getElementById('discardList'), deckModal: document.getElementById('deckModal'), closeDeck: document.getElementById('closeDeckModalBtn'), deckList: document.getElementById('deckList'), deckClosePrompt: document.getElementById('deckClosePromptModal'), deckClosePromptShuffle: document.getElementById('deckClosePromptShuffleBtn'), deckClosePromptNoShuffle: document.getElementById('deckClosePromptNoShuffleBtn'), deckActions: document.getElementById('deckActionsModal'), closeDeckActions: document.getElementById('closeDeckActionsModalBtn'), hint: document.getElementById('dragActionHint'), toast: document.getElementById('actionToast'), playmat: document.querySelector('.playmat'), markers: document.getElementById('markerLayer'), bag: document.getElementById('markerBagBtn'), bagModal: document.getElementById('markerBagModal'), closeBag: document.getElementById('closeMarkerBagModalBtn'), catalog: document.getElementById('markerCatalog'), startScreen: document.getElementById('gameStartScreen'), startDeckSel: document.getElementById('startDeckSelect'), startBtn: document.getElementById('startGameBtn'), resumeBtn: document.getElementById('resumeGameBtn') };
 let LANG = 'fr';
@@ -20,8 +14,8 @@ const saveNow = () => {
   if (S.hydr) return;
   const state = { deck: S.deck, hand: S.hand, discard: S.discard, placed: S.placed, markers: S.markers, nextPlaced: S.nextPlaced, nextMarker: S.nextMarker, deckId: S.deckId, view: S.view, hidden: handHidden() };
   localStorage.setItem(K.save, JSON.stringify(state));
-  if (currentCloudUser) {
-    saveUserData(currentCloudUser.uid, { gameState: state }).catch(() => {});
+  if (currentCloudUser && firebaseApi) {
+    firebaseApi.saveUserData(currentCloudUser.uid, { gameState: state }).catch(() => {});
   }
 };
 const saveSoon = () => { if (S.hydr) return; clearTimeout(S.saveT); S.saveT = setTimeout(saveNow, 100) };
@@ -156,12 +150,18 @@ addEventListener('fullscreenchange', onFullscreenChange); addEventListener('resi
 applyGridVars(); init();
 
 async function initCloudSync() {
-  await initFirebase();
-  if (!isFirebaseEnabled()) return;
-  onUserChanged(async user => {
+  try {
+    firebaseApi = await import("./firebase/storage.js");
+    await firebaseApi.initFirebase();
+  } catch {
+    firebaseApi = null;
+    return;
+  }
+  if (!firebaseApi.isFirebaseEnabled()) return;
+  firebaseApi.onUserChanged(async user => {
     currentCloudUser = user || null;
     if (!user) return;
-    const data = await loadUserData(user.uid).catch(() => null);
+    const data = await firebaseApi.loadUserData(user.uid).catch(() => null);
     if (!data) return;
     if (Array.isArray(data.decks)) {
       localStorage.setItem(K.decks, JSON.stringify(data.decks));
