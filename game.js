@@ -1,14 +1,29 @@
 import { CATEGORY_BY_LANG, GRID, K, REG, SUPPORTED_LANGS, gameI18n, mTypes, names } from "./game/constants.js";
+import {
+  initFirebase,
+  isFirebaseEnabled,
+  onUserChanged,
+  loadUserData,
+  saveUserData,
+} from "./firebase/storage.js";
 
 const e = { fs: document.getElementById('fullscreenBtn'), deckSel: document.getElementById('gameDeckSelect'), loadDeck: document.getElementById('loadDeckBtn'), reset: document.getElementById('resetGameBtn'), handT: document.getElementById('handToggleBtn'), showHand: document.getElementById('showHandBtn'), draw: document.getElementById('drawBtn'), viewDeck: document.getElementById('viewDeckBtn'), shuffle: document.getElementById('shuffleDeckBtn'), deckMenu: document.getElementById('deckMenuBtn'), deckZone: document.getElementById('deckZone'), deckCount: document.getElementById('deckCount'), handCards: document.getElementById('handCards'), discardCount: document.getElementById('discardCount'), discardZone: document.getElementById('discardZone'), discardTop: document.getElementById('discardTopCard'), board: document.getElementById('boardCardsLayer'), cardModal: document.getElementById('cardModal'), closeCard: document.getElementById('closeCardModalBtn'), cardContent: document.getElementById('cardModalContent'), disModal: document.getElementById('discardModal'), closeDis: document.getElementById('closeDiscardModalBtn'), disList: document.getElementById('discardList'), deckModal: document.getElementById('deckModal'), closeDeck: document.getElementById('closeDeckModalBtn'), deckList: document.getElementById('deckList'), deckClosePrompt: document.getElementById('deckClosePromptModal'), deckClosePromptShuffle: document.getElementById('deckClosePromptShuffleBtn'), deckClosePromptNoShuffle: document.getElementById('deckClosePromptNoShuffleBtn'), deckActions: document.getElementById('deckActionsModal'), closeDeckActions: document.getElementById('closeDeckActionsModalBtn'), hint: document.getElementById('dragActionHint'), toast: document.getElementById('actionToast'), playmat: document.querySelector('.playmat'), markers: document.getElementById('markerLayer'), bag: document.getElementById('markerBagBtn'), bagModal: document.getElementById('markerBagModal'), closeBag: document.getElementById('closeMarkerBagModalBtn'), catalog: document.getElementById('markerCatalog'), startScreen: document.getElementById('gameStartScreen'), startDeckSel: document.getElementById('startDeckSelect'), startBtn: document.getElementById('startGameBtn'), resumeBtn: document.getElementById('resumeGameBtn') };
 let LANG = 'fr';
 let S = { deck: [], hand: [], discard: [], placed: [], markers: [], nextPlaced: 1, nextMarker: 1, deckId: '', view: 'all', drag: null, mDrag: null, ghost: null, mGhost: null, hideEl: null, snap: null, snapPos: null, saveT: null, toastT: null, blockDis: 0, hydr: false };
+let currentCloudUser = null;
 
 const rnd = n => Math.floor(Math.random() * n); const sh = a => { for (let i = a.length - 1; i > 0; i--) { const j = rnd(i + 1);[a[i], a[j]] = [a[j], a[i]] } }; const inR = (x, y, r) => x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
 const inferKind = c => { const k = String(c?.kind || '').toLowerCase(); if (k === 'pokemon' || k === 'trainer' || k === 'energy') return k; const cat = String(c?.category || '').toLowerCase(); if (cat.includes('trainer') || cat.includes('dresseur') || cat.includes('entrenador')) return 'trainer'; if (cat.includes('energy') || cat.includes('energie') || cat.includes('energ')) return 'energy'; return 'pokemon' };
 const layerRank = c => { const k = inferKind(c); if (k === 'pokemon') return 3; if (k === 'trainer') return 2; if (k === 'energy') return 1; return 2 };
 const handHidden = () => document.body.classList.contains('hand-hidden');
-const saveNow = () => { if (S.hydr) return; localStorage.setItem(K.save, JSON.stringify({ deck: S.deck, hand: S.hand, discard: S.discard, placed: S.placed, markers: S.markers, nextPlaced: S.nextPlaced, nextMarker: S.nextMarker, deckId: S.deckId, view: S.view, hidden: handHidden() })); };
+const saveNow = () => {
+  if (S.hydr) return;
+  const state = { deck: S.deck, hand: S.hand, discard: S.discard, placed: S.placed, markers: S.markers, nextPlaced: S.nextPlaced, nextMarker: S.nextMarker, deckId: S.deckId, view: S.view, hidden: handHidden() };
+  localStorage.setItem(K.save, JSON.stringify(state));
+  if (currentCloudUser) {
+    saveUserData(currentCloudUser.uid, { gameState: state }).catch(() => {});
+  }
+};
 const saveSoon = () => { if (S.hydr) return; clearTimeout(S.saveT); S.saveT = setTimeout(saveNow, 100) };
 const toast = t => { e.toast.textContent = t; e.toast.hidden = false; clearTimeout(S.toastT); S.toastT = setTimeout(() => e.toast.hidden = true, 1200) };
 const imgUrl = c => { if (!c || !c.image) return null; if (typeof c.image === 'string') { if (c.image.startsWith('data:') || c.image.startsWith('blob:')) return c.image; if (/\.(webp|png|jpg|jpeg)$/i.test(c.image)) return c.image; return c.image + '/high.webp' } return c.image.high || c.image.low || c.image.small || null };
@@ -139,4 +154,31 @@ e.markers.addEventListener('pointerdown', ev => { const t = ev.target; if (!(t i
 addEventListener('keydown', ev => { if (ev.key !== 'Escape') return; if (!e.cardModal.hidden) e.cardModal.hidden = true; else if (!e.disModal.hidden) e.disModal.hidden = true; else if (!e.deckClosePrompt.hidden) e.deckClosePrompt.hidden = true; else if (!e.deckModal.hidden) askCloseDeckWithShufflePrompt(); else if (!e.deckActions.hidden) e.deckActions.hidden = true; else if (!e.bagModal.hidden) e.bagModal.hidden = true });
 addEventListener('fullscreenchange', onFullscreenChange); addEventListener('resize', relayout); addEventListener('beforeunload', () => { if (S.saveT) clearTimeout(S.saveT); saveNow() });
 applyGridVars(); init();
+
+async function initCloudSync() {
+  await initFirebase();
+  if (!isFirebaseEnabled()) return;
+  onUserChanged(async user => {
+    currentCloudUser = user || null;
+    if (!user) return;
+    const data = await loadUserData(user.uid).catch(() => null);
+    if (!data) return;
+    if (Array.isArray(data.decks)) {
+      localStorage.setItem(K.decks, JSON.stringify(data.decks));
+      renderDeckOptions(S.deckId || "");
+      syncStartDeckOptions();
+    }
+    if (data.gameState && typeof data.gameState === "object") {
+      localStorage.setItem(K.save, JSON.stringify(data.gameState));
+      showStartScreen();
+    }
+    if (typeof data.lang === "string" && SUPPORTED_LANGS.has(data.lang)) {
+      LANG = data.lang;
+      localStorage.setItem(K.lang, LANG);
+      applyGameTranslations();
+    }
+  });
+}
+
+initCloudSync();
 

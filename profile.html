@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sim TCG - Profil</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="layout">
+    <section class="panel">
+      <h1>Profil</h1>
+      <p id="authStatus" class="api-status">Non connecte</p>
+
+      <section class="deck-builder deck-builder-wide">
+        <div class="deck-builder-top">
+          <h3>Connexion</h3>
+          <div class="deck-builder-controls">
+            <div class="deck-control">
+              <label for="emailInput">Email</label>
+              <input id="emailInput" class="deck-input" type="email" placeholder="email@exemple.com">
+            </div>
+            <div class="deck-control">
+              <label for="passwordInput">Mot de passe</label>
+              <input id="passwordInput" class="deck-input" type="password" placeholder="Mot de passe">
+            </div>
+          </div>
+          <div class="deck-actions">
+            <button id="signInBtn" class="primary" type="button">Se connecter</button>
+            <button id="signUpBtn" type="button">Creer un compte</button>
+            <button id="googleBtn" type="button">Connexion Google</button>
+            <button id="signOutBtn" type="button">Deconnexion</button>
+          </div>
+          <p id="authMessage" class="api-status"></p>
+        </div>
+      </section>
+
+      <p class="api-status">
+        Les decks et la derniere partie sont synchronises automatiquement en ligne quand tu es connecte.
+      </p>
+      <p>
+        <a class="play-link" href="index.html">Retour catalogue</a>
+        <a class="play-link" href="game.html">Mode jeu</a>
+      </p>
+    </section>
+  </main>
+  <script type="module" src="profile.js"></script>
+</body>
+</html>
+

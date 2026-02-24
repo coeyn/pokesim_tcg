@@ -6,6 +6,13 @@ import {
   basicEnergyTypeKeys,
   energyTypeColors,
 } from "./catalog/constants.js";
+import {
+  initFirebase,
+  isFirebaseEnabled,
+  onUserChanged,
+  loadUserData,
+  saveUserData,
+} from "./firebase/storage.js";
 
 let currentLanguage = "fr";
 const STORAGE_LANG_KEY = "simtcg.lang";
@@ -254,6 +261,10 @@ function loadDecksFromStorage() {
 
 function saveDecksToStorage() {
   localStorage.setItem(STORAGE_DECKS_KEY, JSON.stringify(decks));
+  const user = currentCloudUser;
+  if (user) {
+    saveUserData(user.uid, { decks }).catch(() => {});
+  }
 }
 
 function getDeckById(deckId) {
@@ -780,6 +791,10 @@ function deleteSelectedDeck() {
 languageSelect.addEventListener("change", async () => {
   currentLanguage = languageSelect.value;
   localStorage.setItem(STORAGE_LANG_KEY, currentLanguage);
+  const user = currentCloudUser;
+  if (user) {
+    saveUserData(user.uid, { lang: currentLanguage }).catch(() => {});
+  }
   syncPlayLinkLanguage();
   applyTranslations();
   await loadStandardSets();
@@ -906,3 +921,31 @@ applyTranslations();
 loadDecksFromStorage();
 renderDeckUi();
 loadStandardSets();
+
+let currentCloudUser = null;
+async function initCloudSync() {
+  await initFirebase();
+  if (!isFirebaseEnabled()) return;
+  onUserChanged(async (user) => {
+    currentCloudUser = user || null;
+    if (!user) return;
+    const data = await loadUserData(user.uid).catch(() => null);
+    if (!data) return;
+    if (Array.isArray(data.decks)) {
+      decks = data.decks;
+      localStorage.setItem(STORAGE_DECKS_KEY, JSON.stringify(decks));
+      renderDeckUi();
+      renderCards(currentVisibleCards, currentSetName);
+    }
+    if (typeof data.lang === "string" && i18n[data.lang]) {
+      currentLanguage = data.lang;
+      languageSelect.value = currentLanguage;
+      localStorage.setItem(STORAGE_LANG_KEY, currentLanguage);
+      syncPlayLinkLanguage();
+      applyTranslations();
+      await loadStandardSets();
+    }
+  });
+}
+
+initCloudSync();
