@@ -8,16 +8,23 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="profile.css">
 </head>
 <body>
-  <main class="layout">
-    <section class="panel">
-      <h1>Profil</h1>
-      <p id="authStatus" class="api-status">Non connecte</p>
+  <main class="layout profile-layout">
+    <section class="panel profile-panel">
+      <header class="profile-header">
+        <div>
+          <h1>Profil</h1>
+          <p class="profile-subtitle">Connexion et synchronisation cloud des decks/parties.</p>
+        </div>
+        <p id="authStatus" class="auth-pill">Non connecte</p>
+      </header>
 
-      <section class="deck-builder deck-builder-wide">
+      <section class="deck-builder deck-builder-wide profile-auth-card">
         <div class="deck-builder-top">
           <h3>Connexion</h3>
+          <div id="userSummary" class="user-summary" hidden></div>
           <div class="deck-builder-controls">
             <div class="deck-control">
               <label for="emailInput">Email</label>
@@ -34,20 +41,19 @@
             <button id="googleBtn" type="button">Connexion Google</button>
             <button id="signOutBtn" type="button">Deconnexion</button>
           </div>
-          <p id="authMessage" class="api-status"></p>
+          <p id="authMessage" class="api-status auth-message"></p>
         </div>
       </section>
 
-      <p class="api-status">
+      <p class="api-status profile-note">
         Les decks et la derniere partie sont synchronises automatiquement en ligne quand tu es connecte.
       </p>
-      <p>
+      <nav class="profile-links">
         <a class="play-link" href="index.html">Retour catalogue</a>
         <a class="play-link" href="game.html">Mode jeu</a>
-      </p>
+      </nav>
     </section>
   </main>
   <script type="module" src="profile.js"></script>
 </body>
 </html>
-

@@ -1,0 +1,84 @@
+.profile-layout {
+  max-width: 980px;
+  margin: 0 auto;
+}
+
+.profile-panel {
+  background:
+    radial-gradient(circle at 12% -20%, rgb(234 109 0 / 12%), transparent 40%),
+    radial-gradient(circle at 90% 10%, rgb(32 32 36 / 6%), transparent 32%),
+    #fffdfa;
+}
+
+.profile-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 0.8rem;
+}
+
+.profile-subtitle {
+  margin: 0.2rem 0 0;
+  color: var(--muted);
+}
+
+.auth-pill {
+  margin: 0;
+  border: 1px solid var(--line);
+  background: #fff;
+  border-radius: 999px;
+  padding: 0.28rem 0.65rem;
+  font-size: 0.88rem;
+  white-space: nowrap;
+}
+
+.auth-pill.connected {
+  border-color: #2f8a57;
+  background: #eefbf3;
+  color: #1e673f;
+}
+
+.profile-auth-card {
+  grid-template-columns: 1fr;
+  border-color: #eadfcb;
+}
+
+.user-summary {
+  border: 1px solid var(--line);
+  background: #fff;
+  border-radius: 10px;
+  padding: 0.5rem 0.65rem;
+  margin-bottom: 0.5rem;
+  color: var(--muted);
+}
+
+.auth-message {
+  min-height: 1.3rem;
+}
+
+.auth-message.error {
+  color: #9f2f2f;
+}
+
+.auth-message.success {
+  color: #1e673f;
+}
+
+.profile-note {
+  margin-top: 0.2rem;
+}
+
+.profile-links {
+  display: flex;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 700px) {
+  .profile-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+

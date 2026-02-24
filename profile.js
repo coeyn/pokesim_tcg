@@ -16,30 +16,55 @@ const googleBtn = document.getElementById("googleBtn");
 const signOutBtn = document.getElementById("signOutBtn");
 const authStatus = document.getElementById("authStatus");
 const authMessage = document.getElementById("authMessage");
+const userSummary = document.getElementById("userSummary");
+const actionButtons = [signInBtn, signUpBtn, googleBtn, signOutBtn];
 
-function setMsg(msg) {
+function setBusy(busy) {
+  actionButtons.forEach((btn) => {
+    btn.disabled = busy;
+  });
+}
+
+function setMsg(msg, type = "") {
   authMessage.textContent = msg || "";
+  authMessage.classList.remove("error", "success");
+  if (type) {
+    authMessage.classList.add(type);
+  }
 }
 
 function updateStatus(user) {
   authStatus.textContent = user
     ? `Connecte: ${user.email || user.uid}`
     : "Non connecte";
+  authStatus.classList.toggle("connected", Boolean(user));
+  if (user) {
+    userSummary.hidden = false;
+    userSummary.textContent = `UID: ${user.uid} - ${user.email || "Compte sans email"}`;
+  } else {
+    userSummary.hidden = true;
+    userSummary.textContent = "";
+  }
 }
 
 async function run(action) {
   try {
+    setBusy(true);
     setMsg("");
     await action();
+    setMsg("Operation reussie.", "success");
   } catch (error) {
-    setMsg(error?.message || "Erreur");
+    setMsg(error?.message || "Erreur", "error");
+  } finally {
+    setBusy(false);
   }
 }
 
 async function boot() {
   await initFirebase();
   if (!isFirebaseEnabled()) {
-    setMsg("Firebase non configure. Remplis firebase/config.js");
+    setMsg("Firebase non configure. Remplis firebase/config.js", "error");
+    setBusy(true);
     return;
   }
   onUserChanged(updateStatus);
@@ -55,4 +80,3 @@ async function boot() {
 }
 
 boot();
-
