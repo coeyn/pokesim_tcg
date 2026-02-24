@@ -36,19 +36,21 @@ function setMsg(msg, type = "") {
 }
 
 function updateStatus(user) {
+  const connected = Boolean(user);
   authStatus.textContent = user
     ? `Connecte: ${user.email || user.uid}`
     : "Non connecte";
-  authStatus.classList.toggle("connected", Boolean(user));
-  signInBtn.hidden = Boolean(user);
-  signUpBtn.hidden = Boolean(user);
-  googleBtn.hidden = Boolean(user);
+  authStatus.classList.toggle("connected", connected);
+  document.body.classList.toggle("auth-connected", connected);
+  signInBtn.hidden = connected;
+  signUpBtn.hidden = connected;
+  googleBtn.hidden = connected;
   signOutBtn.hidden = !user;
   if (authFields) {
-    authFields.hidden = Boolean(user);
+    authFields.hidden = connected;
   }
   if (authActions) {
-    authActions.classList.toggle("signed-in", Boolean(user));
+    authActions.classList.toggle("signed-in", connected);
   }
   if (user) {
     userSummary.hidden = false;

@@ -53,6 +53,16 @@
   color: #fff;
 }
 
+body.auth-connected #authFields {
+  display: none !important;
+}
+
+body.auth-connected #signInBtn,
+body.auth-connected #signUpBtn,
+body.auth-connected #googleBtn {
+  display: none !important;
+}
+
 .user-summary {
   border: 1px solid var(--line);
   background: #fff;
