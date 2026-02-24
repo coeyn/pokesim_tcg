@@ -1,0 +1,151 @@
+﻿<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sim TCG - Mode Jeu</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="game.css">
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <h1>Mode Jeu - Table libre</h1>
+      <p>Main, pioche, defausse, marqueurs. Place les cartes librement sur le tapis.</p>
+    </div>
+    <div class="top-actions">
+      <label for="gameDeckSelect" class="sr-only">Deck</label>
+      <select id="gameDeckSelect" class="game-select" aria-label="Choisir un deck"></select>
+      <button id="loadDeckBtn" class="fullscreen-btn" type="button">Charger deck</button>
+      <button id="resetGameBtn" class="fullscreen-btn" type="button">Recommencer</button>
+      <button id="fullscreenBtn" class="fullscreen-btn" type="button">Plein ecran</button>
+      <a class="catalog-link" href="index.html">Retour au catalogue</a>
+    </div>
+  </header>
+
+  <section id="gameStartScreen" class="start-screen">
+    <div class="start-screen-panel">
+      <h2 data-i18n-game="ui.startTitle">Mode Jeu</h2>
+      <p data-i18n-game="ui.startSubtitle">Choisis un deck puis lance la partie.</p>
+      <label for="startDeckSelect" data-i18n-game="ui.deckLabel">Deck</label>
+      <select id="startDeckSelect" class="game-select" aria-label="Choisir un deck pour la partie"></select>
+      <div class="start-screen-actions">
+        <button id="startGameBtn" class="fullscreen-btn" type="button" data-i18n-game="ui.startGame">Lancer la partie</button>
+        <button id="resumeGameBtn" class="fullscreen-btn" type="button" hidden data-i18n-game="ui.resumeGame">Reprendre la partie</button>
+        <a class="catalog-link" href="index.html" data-i18n-game="ui.returnCatalog">Retour au catalogue</a>
+      </div>
+    </div>
+  </section>
+
+  <main class="table-wrap">
+    <section class="playmat">
+      <div id="boardCardsLayer" class="board-cards-layer"></div>
+      <div id="markerLayer" class="marker-layer" aria-hidden="true"></div>
+
+      <section class="table-controls">
+        <section class="deck-wrap">
+          <div class="deck-label-outside" data-i18n-game="ui.deckZoneLabel">Pioche</div>
+          <article id="deckZone" class="zone small card-zone deck-zone" data-zone="deck">
+            <button id="deckMenuBtn" class="deck-main-btn" type="button" aria-label="Ouvrir les actions de pioche" data-i18n-game="ui.deckZoneLabel">Pioche</button>
+            <span id="deckCount" class="sr-only" aria-hidden="true">60</span>
+          </article>
+        </section>
+
+        <section class="discard-wrap">
+          <div class="discard-label-outside" data-i18n-game="ui.discardZoneLabel">Defausse</div>
+          <article id="discardZone" class="zone small card-zone discard-zone" data-zone="discard">
+            <div id="discardTopCard" class="discard-top-card"></div>
+            <span id="discardCount" class="sr-only" aria-hidden="true">0</span>
+          </article>
+        </section>
+
+        <section class="marker-bag-wrap">
+          <button id="markerBagBtn" class="marker-bag-btn" type="button" title="Sac de marqueurs">👜</button>
+        </section>
+      </section>
+
+      <section class="hand-row" data-zone="hand">
+        <div class="hand-header">
+          <h2 data-i18n-game="ui.handTitle">Main</h2>
+          <button id="handToggleBtn" class="hand-toggle-btn" type="button" data-i18n-game="ui.hideHand">Masquer la main</button>
+        </div>
+        <div id="handCards" class="hand-cards"></div>
+      </section>
+
+      <button id="showHandBtn" class="show-hand-btn" type="button" hidden data-i18n-game="ui.showHand">Afficher la main</button>
+    </section>
+  </main>
+
+  <div id="cardModal" class="card-modal" hidden>
+    <div class="card-modal-backdrop" data-close-modal="true"></div>
+    <div class="card-modal-panel">
+      <button id="closeCardModalBtn" class="card-modal-close" type="button" data-i18n-game="ui.close">Fermer</button>
+      <article id="cardModalContent" class="card-preview"></article>
+    </div>
+  </div>
+
+  <div id="discardModal" class="card-modal" hidden>
+    <div class="card-modal-backdrop" data-close-discard-modal="true"></div>
+    <div class="card-modal-panel discard-modal-panel">
+      <button id="closeDiscardModalBtn" class="card-modal-close" type="button" data-i18n-game="ui.close">Fermer</button>
+      <h3 class="discard-modal-title" data-i18n-game="ui.discardTitle">Defausse</h3>
+      <div id="discardList" class="discard-list"></div>
+    </div>
+  </div>
+
+  <div id="deckModal" class="card-modal" hidden>
+    <div class="card-modal-backdrop" data-close-deck-modal="true"></div>
+    <div class="card-modal-panel discard-modal-panel">
+      <button id="closeDeckModalBtn" class="card-modal-close" type="button" data-i18n-game="ui.close">Fermer</button>
+      <h3 class="discard-modal-title" data-i18n-game="ui.deckTitle">Pioche</h3>
+      <div id="deckList" class="discard-list"></div>
+    </div>
+  </div>
+
+  <div id="deckClosePromptModal" class="card-modal" hidden>
+    <div class="card-modal-backdrop" data-close-deck-close-prompt-modal="true"></div>
+    <div class="card-modal-panel">
+      <h3 class="discard-modal-title" data-i18n-game="ui.deckCloseTitle">Fermer la pioche</h3>
+      <p class="deck-close-prompt-text" data-i18n-game="ui.deckCloseText">Remelanger la pioche avant de fermer ?</p>
+      <div class="deck-close-prompt-actions">
+        <button id="deckClosePromptShuffleBtn" class="draw-btn" type="button" data-i18n-game="ui.shuffle">Remelanger</button>
+        <button id="deckClosePromptNoShuffleBtn" class="draw-btn" type="button" data-i18n-game="ui.closeNoShuffle">Fermer sans melanger</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="deckActionsModal" class="card-modal" hidden>
+    <div class="card-modal-backdrop" data-close-deck-actions-modal="true"></div>
+    <div class="card-modal-panel">
+      <button id="closeDeckActionsModalBtn" class="card-modal-close" type="button" data-i18n-game="ui.close">Fermer</button>
+      <h3 class="discard-modal-title" data-i18n-game="ui.deckActionsTitle">Actions de pioche</h3>
+      <div class="deck-actions-modal-list">
+        <button id="drawBtn" class="draw-btn" type="button" data-i18n-game="ui.draw">Piocher</button>
+        <button id="viewDeckBtn" class="draw-btn" type="button" data-i18n-game="ui.viewDeck">Voir la pioche</button>
+        <button id="shuffleDeckBtn" class="draw-btn" type="button" data-i18n-game="ui.shuffle">Remelanger</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="markerBagModal" class="card-modal" hidden>
+    <div class="card-modal-backdrop" data-close-marker-bag-modal="true"></div>
+    <div class="card-modal-panel marker-bag-modal-panel">
+      <button id="closeMarkerBagModalBtn" class="card-modal-close" type="button" data-i18n-game="ui.close">Fermer</button>
+      <h3 class="discard-modal-title" data-i18n-game="ui.markerBagTitle">Sac de marqueurs</h3>
+      <div id="markerCatalog" class="marker-catalog">
+        <button type="button" class="marker-catalog-item marker-burn" data-marker-type="burn" data-i18n-game="ui.markerBurn">Brulure</button>
+        <button type="button" class="marker-catalog-item marker-poison" data-marker-type="poison" data-i18n-game="ui.markerPoison">Poison</button>
+        <button type="button" class="marker-catalog-item marker-dmg10" data-marker-type="dmg10">10</button>
+        <button type="button" class="marker-catalog-item marker-dmg50" data-marker-type="dmg50">50</button>
+        <button type="button" class="marker-catalog-item marker-dmg100" data-marker-type="dmg100">100</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="dragActionHint" class="drag-action-hint" hidden></div>
+  <div id="actionToast" class="action-toast" hidden></div>
+  <script type="module" src="game.js"></script>
+</body>
+</html>

@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sim TCG - Catalogue Standard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <h1 data-i18n="app.title">Sim TCG - Catalogue Standard</h1>
+      <p data-i18n="app.subtitle">Affichage des extensions Standard et de leurs cartes via TCGdex.</p>
+    </div>
+    <div class="toolbar">
+      <label for="language" data-i18n="language.label">Langue</label>
+      <select id="language" aria-label="Changer la langue">
+        <option value="fr">Francais</option>
+        <option value="en">English</option>
+        <option value="es">Espanol</option>
+      </select>
+      <a class="play-link" href="game.html">Mode Jeu</a>
+    </div>
+  </header>
+
+  <main class="layout">
+    <section class="panel">
+      <h2 data-i18n="cards.title">Catalogue de cartes</h2>
+      <p data-i18n="cards.subtitle">Extensions Standard uniquement (liste manuelle 2025-2026), cartes chargees via TCGdex.</p>
+
+      <section class="deck-builder deck-builder-wide">
+        <div class="deck-builder-top">
+          <h3>Decks</h3>
+          <div class="deck-builder-controls">
+            <div class="deck-control">
+              <label for="deckSelect">Deck existant</label>
+              <select id="deckSelect" class="set-select">
+                <option value="">Aucun deck</option>
+              </select>
+            </div>
+            <div class="deck-control">
+              <label for="deckNameInput">Nom du deck</label>
+              <input id="deckNameInput" class="deck-input" type="text" maxlength="48" placeholder="Nouveau deck">
+            </div>
+          </div>
+          <div class="deck-actions">
+            <button id="createDeckBtn" type="button" class="primary">Creer / Renommer</button>
+            <button id="deleteDeckBtn" type="button">Supprimer</button>
+          </div>
+          <section class="energy-deck-builder">
+            <p class="energy-deck-title">Energies de base</p>
+            <div id="energyDeckControls" class="energy-deck-controls"></div>
+          </section>
+          <p id="deckStatus" class="api-status" aria-live="polite"></p>
+        </div>
+        <div class="deck-preview">
+          <div class="deck-preview-header">
+            <h4>Preview du deck</h4>
+            <p id="deckPreviewStatus" class="deck-preview-status">0 / 60</p>
+          </div>
+          <div id="deckPreviewList" class="deck-preview-list"></div>
+        </div>
+      </section>
+
+      <div class="catalog-layout">
+        <aside class="sets-column">
+          <div class="set-controls">
+            <button id="loadStandardSets" class="primary" data-i18n="cards.loadSets">Charger les cartes Standard</button>
+          </div>
+          <div class="search-block">
+            <label for="cardSearchInput" data-i18n="cards.searchLabel">Recherche</label>
+            <input id="cardSearchInput" class="set-select" type="search" placeholder="Rechercher une carte...">
+          </div>
+          <label for="typeFilterSelect" data-i18n="cards.filterLabel">Type de carte</label>
+          <select id="typeFilterSelect" class="set-select">
+            <option value="all" data-i18n="cards.filterAll">Tous</option>
+            <option value="pokemon" data-i18n="cards.filterPokemon">Pokemon</option>
+            <option value="trainer" data-i18n="cards.filterTrainer">Dresseur</option>
+            <option value="energy" data-i18n="cards.filterEnergy">Energie</option>
+          </select>
+          <p class="filter-types-title" data-i18n="cards.energyTypesLabel">Types d'energie</p>
+          <div id="energyTypeButtons" class="type-buttons"></div>
+          <p id="apiStatus" class="api-status" aria-live="polite"></p>
+        </aside>
+
+        <section class="cards-column">
+          <div class="cards-results-wrap">
+            <div id="cardsLoading" class="cards-loading" hidden>
+              <div class="spinner" aria-hidden="true"></div>
+              <p id="cardsLoadingText">Chargement...</p>
+            </div>
+            <div id="cardResults" class="card-results"></div>
+          </div>
+        </section>
+      </div>
+    </section>
+  </main>
+
+  <div id="cardDetailsModal" class="card-details-modal" hidden>
+    <div class="card-details-backdrop" data-close-card-details="true"></div>
+    <div class="card-details-panel">
+      <button id="closeCardDetailsBtn" class="card-details-close" type="button">Fermer</button>
+      <div id="cardDetailsContent" class="card-details-content"></div>
+    </div>
+  </div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
