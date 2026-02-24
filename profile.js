@@ -17,6 +17,8 @@ const signOutBtn = document.getElementById("signOutBtn");
 const authStatus = document.getElementById("authStatus");
 const authMessage = document.getElementById("authMessage");
 const userSummary = document.getElementById("userSummary");
+const authFields = document.getElementById("authFields");
+const authActions = document.getElementById("authActions");
 const actionButtons = [signInBtn, signUpBtn, googleBtn, signOutBtn];
 
 function setBusy(busy) {
@@ -38,6 +40,16 @@ function updateStatus(user) {
     ? `Connecte: ${user.email || user.uid}`
     : "Non connecte";
   authStatus.classList.toggle("connected", Boolean(user));
+  signInBtn.hidden = Boolean(user);
+  signUpBtn.hidden = Boolean(user);
+  googleBtn.hidden = Boolean(user);
+  signOutBtn.hidden = !user;
+  if (authFields) {
+    authFields.hidden = Boolean(user);
+  }
+  if (authActions) {
+    authActions.classList.toggle("signed-in", Boolean(user));
+  }
   if (user) {
     userSummary.hidden = false;
     userSummary.textContent = `UID: ${user.uid} - ${user.email || "Compte sans email"}`;

@@ -44,6 +44,15 @@
   border-color: #eadfcb;
 }
 
+#authActions.signed-in {
+  justify-content: flex-start;
+}
+
+#authActions.signed-in #signOutBtn {
+  background: #4b1f1f;
+  color: #fff;
+}
+
 .user-summary {
   border: 1px solid var(--line);
   background: #fff;
@@ -81,4 +90,3 @@
     align-items: flex-start;
   }
 }
-
