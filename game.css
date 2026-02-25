@@ -826,6 +826,16 @@ body.fullscreen-mode {
   user-select: none;
 }
 
+.card-facedown {
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  background:
+    radial-gradient(circle at 28% 24%, rgb(255 255 255 / 22%) 0%, transparent 38%),
+    linear-gradient(145deg, #1b5f5c, #103f3c);
+  border: 1px solid rgb(255 255 255 / 24%);
+}
+
 .hand-card .card-image {
   object-fit: cover;
 }

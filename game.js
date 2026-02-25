@@ -2,9 +2,9 @@ import { CATEGORY_BY_LANG, GRID, K, REG, SUPPORTED_LANGS, gameI18n, mTypes, name
 import { cacheOfflinePack, registerOfflineServiceWorker } from "./offline/offline.js";
 let firebaseApi = null;
 
-const e = { fs: document.getElementById('fullscreenBtn'), deckSel: document.getElementById('gameDeckSelect'), loadDeck: document.getElementById('loadDeckBtn'), reset: document.getElementById('resetGameBtn'), handT: document.getElementById('handToggleBtn'), showHand: document.getElementById('showHandBtn'), draw: document.getElementById('drawBtn'), viewDeck: document.getElementById('viewDeckBtn'), shuffle: document.getElementById('shuffleDeckBtn'), deckMenu: document.getElementById('deckMenuBtn'), deckZone: document.getElementById('deckZone'), deckCount: document.getElementById('deckCount'), handCards: document.getElementById('handCards'), discardCount: document.getElementById('discardCount'), discardZone: document.getElementById('discardZone'), discardTop: document.getElementById('discardTopCard'), board: document.getElementById('boardCardsLayer'), cardModal: document.getElementById('cardModal'), closeCard: document.getElementById('closeCardModalBtn'), cardContent: document.getElementById('cardModalContent'), disModal: document.getElementById('discardModal'), closeDis: document.getElementById('closeDiscardModalBtn'), disList: document.getElementById('discardList'), deckModal: document.getElementById('deckModal'), closeDeck: document.getElementById('closeDeckModalBtn'), deckList: document.getElementById('deckList'), deckClosePrompt: document.getElementById('deckClosePromptModal'), deckClosePromptShuffle: document.getElementById('deckClosePromptShuffleBtn'), deckClosePromptNoShuffle: document.getElementById('deckClosePromptNoShuffleBtn'), deckActions: document.getElementById('deckActionsModal'), closeDeckActions: document.getElementById('closeDeckActionsModalBtn'), hint: document.getElementById('dragActionHint'), toast: document.getElementById('actionToast'), playmat: document.querySelector('.playmat'), markers: document.getElementById('markerLayer'), bag: document.getElementById('markerBagBtn'), bagModal: document.getElementById('markerBagModal'), closeBag: document.getElementById('closeMarkerBagModalBtn'), catalog: document.getElementById('markerCatalog'), startScreen: document.getElementById('gameStartScreen'), startDeckSel: document.getElementById('startDeckSelect'), startBtn: document.getElementById('startGameBtn'), resumeBtn: document.getElementById('resumeGameBtn'), offlineBtn: document.getElementById('offlineCacheBtnGame') };
+const e = { fs: document.getElementById('fullscreenBtn'), deckSel: document.getElementById('gameDeckSelect'), loadDeck: document.getElementById('loadDeckBtn'), reset: document.getElementById('resetGameBtn'), handT: document.getElementById('handToggleBtn'), showHand: document.getElementById('showHandBtn'), draw: document.getElementById('drawBtn'), setupPrizes: document.getElementById('setupPrizesBtn'), viewDeck: document.getElementById('viewDeckBtn'), shuffle: document.getElementById('shuffleDeckBtn'), deckMenu: document.getElementById('deckMenuBtn'), deckZone: document.getElementById('deckZone'), deckCount: document.getElementById('deckCount'), handCards: document.getElementById('handCards'), discardCount: document.getElementById('discardCount'), discardZone: document.getElementById('discardZone'), discardTop: document.getElementById('discardTopCard'), board: document.getElementById('boardCardsLayer'), cardModal: document.getElementById('cardModal'), closeCard: document.getElementById('closeCardModalBtn'), cardContent: document.getElementById('cardModalContent'), disModal: document.getElementById('discardModal'), closeDis: document.getElementById('closeDiscardModalBtn'), disList: document.getElementById('discardList'), deckModal: document.getElementById('deckModal'), closeDeck: document.getElementById('closeDeckModalBtn'), deckList: document.getElementById('deckList'), deckClosePrompt: document.getElementById('deckClosePromptModal'), deckClosePromptShuffle: document.getElementById('deckClosePromptShuffleBtn'), deckClosePromptNoShuffle: document.getElementById('deckClosePromptNoShuffleBtn'), deckActions: document.getElementById('deckActionsModal'), closeDeckActions: document.getElementById('closeDeckActionsModalBtn'), hint: document.getElementById('dragActionHint'), toast: document.getElementById('actionToast'), playmat: document.querySelector('.playmat'), markers: document.getElementById('markerLayer'), bag: document.getElementById('markerBagBtn'), bagModal: document.getElementById('markerBagModal'), closeBag: document.getElementById('closeMarkerBagModalBtn'), catalog: document.getElementById('markerCatalog'), startScreen: document.getElementById('gameStartScreen'), startDeckSel: document.getElementById('startDeckSelect'), startBtn: document.getElementById('startGameBtn'), resumeBtn: document.getElementById('resumeGameBtn'), offlineBtn: document.getElementById('offlineCacheBtnGame') };
 let LANG = 'fr';
-let S = { deck: [], hand: [], discard: [], placed: [], markers: [], nextPlaced: 1, nextMarker: 1, deckId: '', view: 'all', drag: null, mDrag: null, ghost: null, mGhost: null, hideEl: null, snap: null, snapPos: null, saveT: null, toastT: null, blockDis: 0, hydr: false };
+let S = { deck: [], hand: [], discard: [], placed: [], markers: [], nextPlaced: 1, nextMarker: 1, deckId: '', view: 'all', prizeDone: false, drag: null, mDrag: null, ghost: null, mGhost: null, hideEl: null, snap: null, snapPos: null, saveT: null, toastT: null, blockDis: 0, hydr: false };
 let currentCloudUser = null;
 let offlineReady = false;
 
@@ -14,7 +14,7 @@ const layerRank = c => { const k = inferKind(c); if (k === 'pokemon') return 3; 
 const handHidden = () => document.body.classList.contains('hand-hidden');
 const saveNow = () => {
   if (S.hydr) return;
-  const state = { deck: S.deck, hand: S.hand, discard: S.discard, placed: S.placed, markers: S.markers, nextPlaced: S.nextPlaced, nextMarker: S.nextMarker, deckId: S.deckId, view: S.view, hidden: handHidden() };
+  const state = { deck: S.deck, hand: S.hand, discard: S.discard, placed: S.placed, markers: S.markers, nextPlaced: S.nextPlaced, nextMarker: S.nextMarker, deckId: S.deckId, view: S.view, prizeDone: S.prizeDone, hidden: handHidden() };
   localStorage.setItem(K.save, JSON.stringify(state));
   if (currentCloudUser && firebaseApi) {
     firebaseApi.saveUserData(currentCloudUser.uid, { gameState: state }).catch(() => {});
@@ -23,7 +23,33 @@ const saveNow = () => {
 const saveSoon = () => { if (S.hydr) return; clearTimeout(S.saveT); S.saveT = setTimeout(saveNow, 100) };
 const toast = t => { e.toast.textContent = t; e.toast.hidden = false; clearTimeout(S.toastT); S.toastT = setTimeout(() => e.toast.hidden = true, 1200) };
 const imgUrl = c => { if (!c || !c.image) return null; if (typeof c.image === 'string') { if (c.image.startsWith('data:') || c.image.startsWith('blob:')) return c.image; if (/\.(webp|png|jpg|jpeg)$/i.test(c.image)) return c.image; return c.image + '/high.webp' } return c.image.high || c.image.low || c.image.small || null };
-const cardFace = (c, cls) => { const a = document.createElement('article'); a.className = cls; const u = imgUrl(c); if (u) { const i = document.createElement('img'); i.className = 'card-image'; i.src = u; i.alt = c.name || 'Carte'; i.draggable = false; i.loading = 'lazy'; i.addEventListener('dragstart', ev => ev.preventDefault()); a.appendChild(i) } else { const f = document.createElement('div'); f.className = 'card-fallback'; f.textContent = 'Carte'; a.appendChild(f) } return a };
+const cardFace = (c, cls) => {
+  const a = document.createElement('article');
+  a.className = cls;
+  if (c?.faceDown) {
+    const back = document.createElement('div');
+    back.className = 'card-facedown';
+    a.appendChild(back);
+    return a;
+  }
+  const u = imgUrl(c);
+  if (u) {
+    const i = document.createElement('img');
+    i.className = 'card-image';
+    i.src = u;
+    i.alt = c.name || 'Carte';
+    i.draggable = false;
+    i.loading = 'lazy';
+    i.addEventListener('dragstart', ev => ev.preventDefault());
+    a.appendChild(i);
+  } else {
+    const f = document.createElement('div');
+    f.className = 'card-fallback';
+    f.textContent = 'Carte';
+    a.appendChild(f);
+  }
+  return a;
+};
 const actionBtn = (cls, t, k, v) => { const b = document.createElement('button'); b.type = 'button'; b.className = cls; b.textContent = t; b.dataset[k] = v; return b };
 const gt = key => (gameI18n[LANG] && gameI18n[LANG][key]) || (gameI18n.fr && gameI18n.fr[key]) || key;
 function applyGameTranslations() {
@@ -52,7 +78,14 @@ function setHand(h) { document.body.classList.toggle('hand-hidden', h); updHandU
 function sizeHand() { const w = e.handCards.clientWidth || 400; const cw = Math.max(82, Math.min(126, Math.floor(w * 0.145))); e.handCards.style.setProperty('--hand-card-width', `${cw}px`) }
 function gridMetrics() { const r = e.board.getBoundingClientRect(); const cell = Math.min(r.width / GRID.cols, r.height / GRID.rows); const gridW = cell * GRID.cols; const gridH = cell * GRID.rows; const offX = (r.width - gridW) / 2; const offY = (r.height - gridH) / 2; const cardRows = Math.round(GRID.cardCols * 7 / 5); const cardW = cell * GRID.cardCols; const cardH = cell * cardRows; return { r, cell, gridW, gridH, offX, offY, cardRows, cardW, cardH } }
 function applyGridVars() { const m = gridMetrics(); e.board.style.setProperty('--grid-cols', String(GRID.cols)); e.board.style.setProperty('--grid-rows', String(GRID.rows)); e.board.style.setProperty('--grid-cell', `${m.cell}px`); e.board.style.setProperty('--grid-offset-x', `${m.offX}px`); e.board.style.setProperty('--grid-offset-y', `${m.offY}px`); e.board.style.setProperty('--grid-card-width', `${m.cardW}px`) }
-function counters() { e.deckCount.textContent = String(S.deck.length); e.discardCount.textContent = String(S.discard.length); e.draw.disabled = S.deck.length === 0; e.draw.textContent = S.deck.length === 0 ? gt('ui.deckEmpty') : gt('ui.draw'); saveSoon() }
+function counters() {
+  e.deckCount.textContent = String(S.deck.length);
+  e.discardCount.textContent = String(S.discard.length);
+  e.draw.disabled = S.deck.length === 0;
+  e.draw.textContent = S.deck.length === 0 ? gt('ui.deckEmpty') : gt('ui.draw');
+  if (e.setupPrizes) e.setupPrizes.disabled = S.prizeDone || S.deck.length < 6;
+  saveSoon();
+}
 function renderHand() { e.handCards.innerHTML = ''; S.hand.forEach(c => { const el = cardFace(c, 'hand-card'); el.dataset.cardId = c.id; e.handCards.appendChild(el) }); sizeHand(); saveSoon() }
 function renderBoard() { const m = gridMetrics(); const maxPlacedId = S.placed.reduce((mx, p) => Math.max(mx, Number(p.id) || 0), 0); e.board.style.setProperty('--grid-card-width', `${m.cardW}px`); e.board.innerHTML = ''; S.snap = null; S.placed.forEach(p => { const el = cardFace(p.card, 'placed-card board-card'); el.dataset.placedId = String(p.id); el.style.left = `${p.x}px`; el.style.top = `${p.y}px`; el.style.width = `${m.cardW}px`; const ageOrder = maxPlacedId - (Number(p.id) || 0); el.style.zIndex = String(layerRank(p.card) * 100000 + ageOrder); e.board.appendChild(el) }); saveSoon() }
 function renderDiscardTop() { e.discardTop.innerHTML = ''; const c = S.discard[S.discard.length - 1]; if (c) e.discardTop.appendChild(cardFace(c, 'placed-card')); saveSoon() }
@@ -81,8 +114,8 @@ async function apiDeck() {
   return Array.from({ length: 60 }, (_, i) => ({ ...refill[i % refill.length], id: `${refill[i % refill.length].id}-X${i + 1}` }));
 }
 function savedCards(id) { if (!id) return null; let arr = []; try { arr = JSON.parse(localStorage.getItem(K.decks) || '[]') } catch { }; if (!Array.isArray(arr)) return null; const d = arr.find(x => x.id === id); return d && Array.isArray(d.cards) ? d.cards : null }
-async function newGame(id = '') { S.hydr = true; S = { ...S, deck: [], hand: [], discard: [], placed: [], markers: [], nextPlaced: 1, nextMarker: 1, deckId: id || '', view: 'all', drag: null, mDrag: null, ghost: null, mGhost: null, hideEl: null, blockDis: 0 }; const sv = savedCards(S.deckId); if (Array.isArray(sv) && sv.length === 60) { localStorage.setItem(K.active, S.deckId); S.deck = fromSaved(sv); sh(S.deck); renderAll(); S.hydr = false; saveNow(); toast(gt('toast.deckLoaded')); return } localStorage.removeItem(K.active); toast(gt('toast.loadingCards')); try { S.deck = await apiDeck() } catch { S.deck = fakeDeck(); toast(gt('toast.apiFallback')) } renderAll(); S.hydr = false; saveNow() }
-function restore() { let st = null; try { st = JSON.parse(localStorage.getItem(K.save) || 'null') } catch { }; if (!st || !Array.isArray(st.deck) || !Array.isArray(st.hand) || !Array.isArray(st.discard) || !Array.isArray(st.placed) || !Array.isArray(st.markers)) return false; S.hydr = true; S.deck = st.deck; S.hand = st.hand; S.discard = st.discard; S.placed = st.placed; S.markers = st.markers; S.nextPlaced = Number(st.nextPlaced) || 1; S.nextMarker = Number(st.nextMarker) || 1; S.deckId = typeof st.deckId === 'string' ? st.deckId : ''; S.view = typeof st.view === 'string' ? st.view : 'all'; renderDeckOptions(S.deckId); renderAll(); setHand(Boolean(st.hidden)); S.hydr = false; toast(gt('toast.restored')); return true }
+async function newGame(id = '') { S.hydr = true; S = { ...S, deck: [], hand: [], discard: [], placed: [], markers: [], nextPlaced: 1, nextMarker: 1, deckId: id || '', view: 'all', prizeDone: false, drag: null, mDrag: null, ghost: null, mGhost: null, hideEl: null, blockDis: 0 }; const sv = savedCards(S.deckId); if (Array.isArray(sv) && sv.length === 60) { localStorage.setItem(K.active, S.deckId); S.deck = fromSaved(sv); sh(S.deck); renderAll(); S.hydr = false; saveNow(); toast(gt('toast.deckLoaded')); return } localStorage.removeItem(K.active); toast(gt('toast.loadingCards')); try { S.deck = await apiDeck() } catch { S.deck = fakeDeck(); toast(gt('toast.apiFallback')) } renderAll(); S.hydr = false; saveNow() }
+function restore() { let st = null; try { st = JSON.parse(localStorage.getItem(K.save) || 'null') } catch { }; if (!st || !Array.isArray(st.deck) || !Array.isArray(st.hand) || !Array.isArray(st.discard) || !Array.isArray(st.placed) || !Array.isArray(st.markers)) return false; S.hydr = true; S.deck = st.deck; S.hand = st.hand; S.discard = st.discard; S.placed = st.placed; S.markers = st.markers; S.nextPlaced = Number(st.nextPlaced) || 1; S.nextMarker = Number(st.nextMarker) || 1; S.deckId = typeof st.deckId === 'string' ? st.deckId : ''; S.view = typeof st.view === 'string' ? st.view : 'all'; S.prizeDone = Boolean(st.prizeDone); renderDeckOptions(S.deckId); renderAll(); setHand(Boolean(st.hidden)); S.hydr = false; toast(gt('toast.restored')); return true }
 function init() { LANG = resolveLanguage(); document.documentElement.lang = LANG; applyGameTranslations(); const q = new URLSearchParams(location.search); renderDeckOptions(q.get('deck') || localStorage.getItem(K.active) || ''); syncStartDeckOptions(); showStartScreen() }
 
 function getOfflineGameImageUrls() {
@@ -132,7 +165,7 @@ function startDrag(s) {
   if (s.el) s.el.classList.add('drag-source');
 }
 function moveDrag(x, y) { if (!S.drag || !S.drag.ghost) return; S.drag.ghost.style.transform = `translate(${x - 35}px, ${y - 49}px)`; const od = overDis(x, y), ok = overDeck(x, y), om = overBoard(x, y), oh = S.drag.src === 'board' && overHand(x, y); e.discardZone.classList.toggle('drop-highlight', od); e.deckZone.classList.toggle('drop-highlight', ok); e.showHand.classList.toggle('drop-highlight', oh && !e.showHand.hidden); if (om && !ok) showSnap(x, y); else hideSnap(); if (od) dHint(gt('hint.toDiscard'), x, y); else if (ok) dHint(gt('hint.toDeck'), x, y); else if (oh) dHint(gt('hint.toHand'), x, y); else if (om) dHint(S.drag.src === 'hand' ? gt('hint.placeMat') : gt('hint.moveMat'), x, y); else dHint('', x, y) }
-function endDrag(ev) { if (!S.drag) return; const d = S.drag; if (d.drag) { const od = overDis(ev.clientX, ev.clientY), ok = overDeck(ev.clientX, ev.clientY), om = overBoard(ev.clientX, ev.clientY), oh = d.src === 'board' && overHand(ev.clientX, ev.clientY); if (d.src === 'hand') { const i = S.hand.findIndex(c => c.id === d.cardId); if (i >= 0) { const [c] = S.hand.splice(i, 1); if (od) { S.discard.push(c); renderDiscardTop(); counters() } else if (ok) { S.deck.unshift(c); counters(); if (!e.deckModal.hidden) renderDeckList() } else if (om) { const p = dropSnap(ev.clientX, ev.clientY); S.placed.push({ id: S.nextPlaced++, card: c, x: p.x, y: p.y }); renderBoard(); counters() } else S.hand.splice(i, 0, c); renderHand() } S.blockDis = Date.now() + 180 } else { const i = S.placed.findIndex(p => p.id === d.placedId); if (i >= 0) { const c = S.placed[i].card; if (od) { S.placed.splice(i, 1); S.discard.push(c); renderBoard(); renderDiscardTop(); counters(); S.blockDis = Date.now() + 180 } else if (ok) { S.placed.splice(i, 1); S.deck.unshift(c); renderBoard(); counters(); if (!e.deckModal.hidden) renderDeckList() } else if (oh) { S.placed.splice(i, 1); S.hand.push(c); renderBoard(); renderHand(); counters() } else if (om) { const p = dropSnap(ev.clientX, ev.clientY); S.placed[i].x = p.x; S.placed[i].y = p.y; renderBoard() } } } } else openCard(d.card); if (d.el) d.el.classList.remove('drag-source'); if (d.ghost) d.ghost.remove(); clearHi(); S.drag = null; removeEventListener('pointermove', onMove); removeEventListener('pointerup', endDrag); removeEventListener('pointercancel', endDrag) }
+function endDrag(ev) { if (!S.drag) return; const d = S.drag; if (d.drag) { const od = overDis(ev.clientX, ev.clientY), ok = overDeck(ev.clientX, ev.clientY), om = overBoard(ev.clientX, ev.clientY), oh = d.src === 'board' && overHand(ev.clientX, ev.clientY); if (d.src === 'hand') { const i = S.hand.findIndex(c => c.id === d.cardId); if (i >= 0) { const [c] = S.hand.splice(i, 1); if (od) { S.discard.push(c); renderDiscardTop(); counters() } else if (ok) { S.deck.unshift(c); counters(); if (!e.deckModal.hidden) renderDeckList() } else if (om) { const p = dropSnap(ev.clientX, ev.clientY); S.placed.push({ id: S.nextPlaced++, card: c, x: p.x, y: p.y }); renderBoard(); counters() } else S.hand.splice(i, 0, c); renderHand() } S.blockDis = Date.now() + 180 } else { const i = S.placed.findIndex(p => p.id === d.placedId); if (i >= 0) { const c = S.placed[i].card; if (od) { S.placed.splice(i, 1); S.discard.push(revealCard(c)); renderBoard(); renderDiscardTop(); counters(); S.blockDis = Date.now() + 180 } else if (ok) { S.placed.splice(i, 1); S.deck.unshift(c); renderBoard(); counters(); if (!e.deckModal.hidden) renderDeckList() } else if (oh) { S.placed.splice(i, 1); S.hand.push(revealCard(c)); renderBoard(); renderHand(); counters() } else if (om) { const p = dropSnap(ev.clientX, ev.clientY); S.placed[i].x = p.x; S.placed[i].y = p.y; renderBoard() } } } } else openCard(d.card); if (d.el) d.el.classList.remove('drag-source'); if (d.ghost) d.ghost.remove(); clearHi(); S.drag = null; removeEventListener('pointermove', onMove); removeEventListener('pointerup', endDrag); removeEventListener('pointercancel', endDrag) }
 function onMove(ev) { if (!S.drag) return; const ds = Math.hypot(ev.clientX - S.drag.sx, ev.clientY - S.drag.sy); if (!S.drag.drag && ds > 8) startDrag(S.drag); if (S.drag.drag) moveDrag(ev.clientX, ev.clientY) }
 function handDown(ev) { const t = ev.target; if (!(t instanceof HTMLElement) || ((ev.pointerType !== 'touch') && ev.button !== 0)) return; const c = t.closest('.hand-card'); if (!(c instanceof HTMLElement)) return; const id = c.dataset.cardId || ''; const card = S.hand.find(x => x.id === id); if (!card) return; S.drag = { src: 'hand', cardId: id, placedId: null, card, el: c, sx: ev.clientX, sy: ev.clientY, drag: false, ghost: null }; addEventListener('pointermove', onMove); addEventListener('pointerup', endDrag); addEventListener('pointercancel', endDrag) }
 function boardDown(ev) { const t = ev.target; if (!(t instanceof HTMLElement) || ((ev.pointerType !== 'touch') && ev.button !== 0)) return; const c = t.closest('.board-card'); if (!(c instanceof HTMLElement)) return; const id = Number(c.dataset.placedId || '-1'); const p = S.placed.find(x => x.id === id); if (!p) return; S.drag = { src: 'board', cardId: p.card.id, placedId: id, card: p.card, el: c, sx: ev.clientX, sy: ev.clientY, drag: false, ghost: null }; addEventListener('pointermove', onMove); addEventListener('pointerup', endDrag); addEventListener('pointercancel', endDrag) }
@@ -142,9 +175,42 @@ function renderDisList() { e.disList.innerHTML = ''; if (!S.discard.length) { co
 function openDis() { renderDisList(); e.disModal.hidden = false }
 function closeDis() { e.disModal.hidden = true }
 function renderDeckList() { e.deckList.innerHTML = ''; if (!S.deck.length) { const p = document.createElement('p'); p.className = 'discard-list-empty'; p.textContent = gt('ui.emptyDeck'); e.deckList.appendChild(p); return } [...S.deck].reverse().forEach(c => { const el = cardFace(c, 'hand-card deck-list-card'); el.dataset.deckTakeId = c.id; el.appendChild(actionBtn('deck-item-btn', gt('ui.retrieve'), 'deckTakeId', c.id)); e.deckList.appendChild(el) }) }
-function draw() { if (!S.deck.length) return; S.hand.push(S.deck.pop()); counters(); renderHand(); if (!e.deckModal.hidden) renderDeckList() }
-function takeDis(id) { const i = S.discard.findIndex(c => c.id === id); if (i < 0) return; const [c] = S.discard.splice(i, 1); S.hand.push(c); renderHand(); renderDiscardTop(); counters(); renderDisList() }
-function takeDeck(id) { const i = S.deck.findIndex(c => c.id === id); if (i < 0) return; const [c] = S.deck.splice(i, 1); S.hand.push(c); renderHand(); counters(); renderDeckList() }
+function revealCard(c) { if (c && c.faceDown) { c.faceDown = false; c.isPrize = false } return c }
+function prizeSetupPositions() {
+  const m = gridMetrics();
+  const gap = m.cell * 1.2;
+  const sx = m.offX + m.cell * 1.2;
+  const sy = m.offY + m.cell * 1.2;
+  const out = [];
+  for (let i = 0; i < 6; i += 1) {
+    const col = Math.floor(i / 3);
+    const row = i % 3;
+    out.push({ x: sx + col * (m.cardW + gap), y: sy + row * (m.cardH + gap) });
+  }
+  return out;
+}
+function setupPrizes() {
+  if (S.prizeDone || S.deck.length < 6) {
+    toast(gt('toast.prizesUnavailable'));
+    return;
+  }
+  const pos = prizeSetupPositions();
+  for (let i = 0; i < 6; i += 1) {
+    const card = S.deck.pop();
+    if (!card) break;
+    card.faceDown = true;
+    card.isPrize = true;
+    S.placed.push({ id: S.nextPlaced++, card, x: pos[i].x, y: pos[i].y });
+  }
+  S.prizeDone = true;
+  renderBoard();
+  counters();
+  if (!e.deckModal.hidden) renderDeckList();
+  toast(gt('toast.prizesPlaced'));
+}
+function draw() { if (!S.deck.length) return; S.hand.push(revealCard(S.deck.pop())); counters(); renderHand(); if (!e.deckModal.hidden) renderDeckList() }
+function takeDis(id) { const i = S.discard.findIndex(c => c.id === id); if (i < 0) return; const [c] = S.discard.splice(i, 1); S.hand.push(revealCard(c)); renderHand(); renderDiscardTop(); counters(); renderDisList() }
+function takeDeck(id) { const i = S.deck.findIndex(c => c.id === id); if (i < 0) return; const [c] = S.deck.splice(i, 1); S.hand.push(revealCard(c)); renderHand(); counters(); renderDeckList() }
 function mix() { if (S.deck.length <= 1) { toast(gt('toast.noShuffle')); return } sh(S.deck); counters(); if (!e.deckModal.hidden) renderDeckList(); toast(gt('toast.shuffled')) }
 function askCloseDeckWithShufflePrompt() { if (e.deckModal.hidden) return; e.deckClosePrompt.hidden = false }
 function closeDeckAndPrompt() { e.deckClosePrompt.hidden = true; e.deckModal.hidden = true }
@@ -167,6 +233,7 @@ e.reset.addEventListener('click', async () => { S.deckId = e.deckSel.value || ''
 e.handT.addEventListener('click', () => setHand(!handHidden()));
 e.showHand.addEventListener('click', () => setHand(false));
 e.draw.addEventListener('click', ev => { ev.stopPropagation(); draw(); e.deckActions.hidden = true });
+e.setupPrizes.addEventListener('click', ev => { ev.stopPropagation(); setupPrizes(); e.deckActions.hidden = true });
 e.viewDeck.addEventListener('click', ev => { ev.stopPropagation(); e.deckActions.hidden = true; renderDeckList(); e.deckModal.hidden = false });
 e.shuffle.addEventListener('click', ev => { ev.stopPropagation(); mix(); e.deckActions.hidden = true });
 e.deckMenu.addEventListener('click', ev => { ev.stopPropagation(); e.deckActions.hidden = false }); e.deckZone.addEventListener('click', () => e.deckActions.hidden = false);
