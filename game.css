@@ -312,15 +312,30 @@ h2 {
 }
 
 .prize-draw-btn {
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  background: #174846;
+  border: 1px solid rgb(255 255 255 / 24%);
+  border-radius: 11px;
+  background:
+    radial-gradient(circle at 28% 24%, rgb(255 255 255 / 22%) 0%, transparent 38%),
+    linear-gradient(145deg, #1b5f5c, #103f3c);
   color: var(--ink);
   font: inherit;
-  font-size: 0.74rem;
-  padding: 0.34rem 0.45rem;
-  min-width: 100%;
+  font-size: 0.66rem;
+  font-weight: 600;
+  width: min(100%, var(--main-card-width));
+  aspect-ratio: 5 / 7;
+  min-height: 0;
+  padding: 0.35rem;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  line-height: 1.15;
   cursor: pointer;
+  box-shadow: 0 4px 14px rgb(0 0 0 / 24%);
+}
+
+.prize-draw-btn:disabled {
+  opacity: 0.65;
+  cursor: default;
 }
 
 .marker-bag-modal-panel {
