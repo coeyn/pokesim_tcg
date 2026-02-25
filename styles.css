@@ -57,6 +57,19 @@ p {
   background: #fffdfa;
 }
 
+.offline-btn {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fffdfa;
+  color: var(--ink);
+  padding: 0.42rem 0.6rem;
+}
+
+.offline-btn.is-ready {
+  border-color: #3b7f5f;
+  background: #e9fff1;
+}
+
 select,
 button,
 input {

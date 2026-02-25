@@ -6,6 +6,7 @@ import {
   basicEnergyTypeKeys,
   energyTypeColors,
 } from "./catalog/constants.js";
+import { cacheOfflinePack, registerOfflineServiceWorker } from "./offline/offline.js";
 let firebaseApi = null;
 
 let currentLanguage = "fr";
@@ -25,6 +26,7 @@ let selectedDeckId = "";
 
 const languageSelect = document.getElementById("language");
 const playLink = document.querySelector(".play-link");
+const offlineCacheBtn = document.getElementById("offlineCacheBtn");
 const loadStandardSetsButton = document.getElementById("loadStandardSets");
 const typeFilterSelect = document.getElementById("typeFilterSelect");
 const energyTypeButtons = document.getElementById("energyTypeButtons");
@@ -45,6 +47,31 @@ const cardDetailsModal = document.getElementById("cardDetailsModal");
 const closeCardDetailsBtn = document.getElementById("closeCardDetailsBtn");
 const cardDetailsContent = document.getElementById("cardDetailsContent");
 const cardDetailsCache = new Map();
+let offlineReady = false;
+
+const offlineText = {
+  fr: {
+    idle: "Mode hors ligne",
+    ready: "Hors ligne pret",
+    caching: "Mise en cache...",
+    done: (count) => `Hors ligne actif (${count})`,
+    fail: "Echec du mode hors ligne",
+  },
+  en: {
+    idle: "Offline mode",
+    ready: "Offline ready",
+    caching: "Caching...",
+    done: (count) => `Offline ready (${count})`,
+    fail: "Offline setup failed",
+  },
+  es: {
+    idle: "Modo sin conexion",
+    ready: "Sin conexion listo",
+    caching: "Guardando cache...",
+    done: (count) => `Sin conexion listo (${count})`,
+    fail: "Error modo sin conexion",
+  },
+};
 
 function t(key) {
   return i18n[currentLanguage][key] || key;
@@ -80,6 +107,11 @@ function applyTranslations() {
   renderTypeFilterOptions();
   renderEnergyTypeButtons();
   renderEnergyDeckControls();
+  if (offlineCacheBtn) {
+    const text = offlineText[currentLanguage] || offlineText.fr;
+    offlineCacheBtn.textContent = offlineReady ? text.ready : text.idle;
+    offlineCacheBtn.classList.toggle("is-ready", offlineReady);
+  }
 }
 
 function getImageUrl(card) {
@@ -740,6 +772,46 @@ function applySearchAndRender() {
   renderCards(cards, currentSetName, query ? cards.length : null);
 }
 
+function getVisibleCardImageUrls() {
+  return currentVisibleCards
+    .map((card) => getHighImageUrl(card) || getImageUrl(card))
+    .filter(Boolean);
+}
+
+async function initOfflineSupport() {
+  if (!offlineCacheBtn) {
+    return;
+  }
+  const txt = offlineText[currentLanguage] || offlineText.fr;
+  const registration = await registerOfflineServiceWorker();
+  if (registration) {
+    offlineReady = true;
+    offlineCacheBtn.classList.add("is-ready");
+    offlineCacheBtn.textContent = txt.ready;
+  }
+  offlineCacheBtn.addEventListener("click", async () => {
+    const curr = offlineText[currentLanguage] || offlineText.fr;
+    offlineCacheBtn.disabled = true;
+    offlineCacheBtn.classList.remove("is-ready");
+    offlineCacheBtn.textContent = curr.caching;
+    const result = await cacheOfflinePack(getVisibleCardImageUrls());
+    if (result.ok) {
+      offlineCacheBtn.textContent = curr.done(result.count);
+      offlineCacheBtn.classList.add("is-ready");
+      apiStatus.textContent = curr.done(result.count);
+    } else {
+      offlineCacheBtn.textContent = curr.fail;
+      apiStatus.textContent = curr.fail;
+    }
+    setTimeout(() => {
+      const next = offlineText[currentLanguage] || offlineText.fr;
+      offlineCacheBtn.disabled = false;
+      offlineCacheBtn.textContent = next.ready;
+      offlineCacheBtn.classList.add("is-ready");
+    }, 1700);
+  });
+}
+
 function createOrRenameDeck() {
   const name = deckNameInput.value.trim();
   if (!name) {
@@ -949,3 +1021,4 @@ async function initCloudSync() {
 }
 
 initCloudSync();
+initOfflineSupport();

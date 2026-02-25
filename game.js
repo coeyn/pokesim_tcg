@@ -1,10 +1,12 @@
 import { CATEGORY_BY_LANG, GRID, K, REG, SUPPORTED_LANGS, gameI18n, mTypes, names } from "./game/constants.js";
+import { cacheOfflinePack, registerOfflineServiceWorker } from "./offline/offline.js";
 let firebaseApi = null;
 
-const e = { fs: document.getElementById('fullscreenBtn'), deckSel: document.getElementById('gameDeckSelect'), loadDeck: document.getElementById('loadDeckBtn'), reset: document.getElementById('resetGameBtn'), handT: document.getElementById('handToggleBtn'), showHand: document.getElementById('showHandBtn'), draw: document.getElementById('drawBtn'), viewDeck: document.getElementById('viewDeckBtn'), shuffle: document.getElementById('shuffleDeckBtn'), deckMenu: document.getElementById('deckMenuBtn'), deckZone: document.getElementById('deckZone'), deckCount: document.getElementById('deckCount'), handCards: document.getElementById('handCards'), discardCount: document.getElementById('discardCount'), discardZone: document.getElementById('discardZone'), discardTop: document.getElementById('discardTopCard'), board: document.getElementById('boardCardsLayer'), cardModal: document.getElementById('cardModal'), closeCard: document.getElementById('closeCardModalBtn'), cardContent: document.getElementById('cardModalContent'), disModal: document.getElementById('discardModal'), closeDis: document.getElementById('closeDiscardModalBtn'), disList: document.getElementById('discardList'), deckModal: document.getElementById('deckModal'), closeDeck: document.getElementById('closeDeckModalBtn'), deckList: document.getElementById('deckList'), deckClosePrompt: document.getElementById('deckClosePromptModal'), deckClosePromptShuffle: document.getElementById('deckClosePromptShuffleBtn'), deckClosePromptNoShuffle: document.getElementById('deckClosePromptNoShuffleBtn'), deckActions: document.getElementById('deckActionsModal'), closeDeckActions: document.getElementById('closeDeckActionsModalBtn'), hint: document.getElementById('dragActionHint'), toast: document.getElementById('actionToast'), playmat: document.querySelector('.playmat'), markers: document.getElementById('markerLayer'), bag: document.getElementById('markerBagBtn'), bagModal: document.getElementById('markerBagModal'), closeBag: document.getElementById('closeMarkerBagModalBtn'), catalog: document.getElementById('markerCatalog'), startScreen: document.getElementById('gameStartScreen'), startDeckSel: document.getElementById('startDeckSelect'), startBtn: document.getElementById('startGameBtn'), resumeBtn: document.getElementById('resumeGameBtn') };
+const e = { fs: document.getElementById('fullscreenBtn'), deckSel: document.getElementById('gameDeckSelect'), loadDeck: document.getElementById('loadDeckBtn'), reset: document.getElementById('resetGameBtn'), handT: document.getElementById('handToggleBtn'), showHand: document.getElementById('showHandBtn'), draw: document.getElementById('drawBtn'), viewDeck: document.getElementById('viewDeckBtn'), shuffle: document.getElementById('shuffleDeckBtn'), deckMenu: document.getElementById('deckMenuBtn'), deckZone: document.getElementById('deckZone'), deckCount: document.getElementById('deckCount'), handCards: document.getElementById('handCards'), discardCount: document.getElementById('discardCount'), discardZone: document.getElementById('discardZone'), discardTop: document.getElementById('discardTopCard'), board: document.getElementById('boardCardsLayer'), cardModal: document.getElementById('cardModal'), closeCard: document.getElementById('closeCardModalBtn'), cardContent: document.getElementById('cardModalContent'), disModal: document.getElementById('discardModal'), closeDis: document.getElementById('closeDiscardModalBtn'), disList: document.getElementById('discardList'), deckModal: document.getElementById('deckModal'), closeDeck: document.getElementById('closeDeckModalBtn'), deckList: document.getElementById('deckList'), deckClosePrompt: document.getElementById('deckClosePromptModal'), deckClosePromptShuffle: document.getElementById('deckClosePromptShuffleBtn'), deckClosePromptNoShuffle: document.getElementById('deckClosePromptNoShuffleBtn'), deckActions: document.getElementById('deckActionsModal'), closeDeckActions: document.getElementById('closeDeckActionsModalBtn'), hint: document.getElementById('dragActionHint'), toast: document.getElementById('actionToast'), playmat: document.querySelector('.playmat'), markers: document.getElementById('markerLayer'), bag: document.getElementById('markerBagBtn'), bagModal: document.getElementById('markerBagModal'), closeBag: document.getElementById('closeMarkerBagModalBtn'), catalog: document.getElementById('markerCatalog'), startScreen: document.getElementById('gameStartScreen'), startDeckSel: document.getElementById('startDeckSelect'), startBtn: document.getElementById('startGameBtn'), resumeBtn: document.getElementById('resumeGameBtn'), offlineBtn: document.getElementById('offlineCacheBtnGame') };
 let LANG = 'fr';
 let S = { deck: [], hand: [], discard: [], placed: [], markers: [], nextPlaced: 1, nextMarker: 1, deckId: '', view: 'all', drag: null, mDrag: null, ghost: null, mGhost: null, hideEl: null, snap: null, snapPos: null, saveT: null, toastT: null, blockDis: 0, hydr: false };
 let currentCloudUser = null;
+let offlineReady = false;
 
 const rnd = n => Math.floor(Math.random() * n); const sh = a => { for (let i = a.length - 1; i > 0; i--) { const j = rnd(i + 1);[a[i], a[j]] = [a[j], a[i]] } }; const inR = (x, y, r) => x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
 const inferKind = c => { const k = String(c?.kind || '').toLowerCase(); if (k === 'pokemon' || k === 'trainer' || k === 'energy') return k; const cat = String(c?.category || '').toLowerCase(); if (cat.includes('trainer') || cat.includes('dresseur') || cat.includes('entrenador')) return 'trainer'; if (cat.includes('energy') || cat.includes('energie') || cat.includes('energ')) return 'energy'; return 'pokemon' };
@@ -30,6 +32,7 @@ function applyGameTranslations() {
     if (!key) return;
     el.textContent = gt(key);
   });
+  if (e.offlineBtn) e.offlineBtn.textContent = offlineReady ? gt('ui.offlineReady') : gt('ui.offlineMode');
   updFS();
   updHandUI();
 }
@@ -81,6 +84,35 @@ function savedCards(id) { if (!id) return null; let arr = []; try { arr = JSON.p
 async function newGame(id = '') { S.hydr = true; S = { ...S, deck: [], hand: [], discard: [], placed: [], markers: [], nextPlaced: 1, nextMarker: 1, deckId: id || '', view: 'all', drag: null, mDrag: null, ghost: null, mGhost: null, hideEl: null, blockDis: 0 }; const sv = savedCards(S.deckId); if (Array.isArray(sv) && sv.length === 60) { localStorage.setItem(K.active, S.deckId); S.deck = fromSaved(sv); sh(S.deck); renderAll(); S.hydr = false; saveNow(); toast(gt('toast.deckLoaded')); return } localStorage.removeItem(K.active); toast(gt('toast.loadingCards')); try { S.deck = await apiDeck() } catch { S.deck = fakeDeck(); toast(gt('toast.apiFallback')) } renderAll(); S.hydr = false; saveNow() }
 function restore() { let st = null; try { st = JSON.parse(localStorage.getItem(K.save) || 'null') } catch { }; if (!st || !Array.isArray(st.deck) || !Array.isArray(st.hand) || !Array.isArray(st.discard) || !Array.isArray(st.placed) || !Array.isArray(st.markers)) return false; S.hydr = true; S.deck = st.deck; S.hand = st.hand; S.discard = st.discard; S.placed = st.placed; S.markers = st.markers; S.nextPlaced = Number(st.nextPlaced) || 1; S.nextMarker = Number(st.nextMarker) || 1; S.deckId = typeof st.deckId === 'string' ? st.deckId : ''; S.view = typeof st.view === 'string' ? st.view : 'all'; renderDeckOptions(S.deckId); renderAll(); setHand(Boolean(st.hidden)); S.hydr = false; toast(gt('toast.restored')); return true }
 function init() { LANG = resolveLanguage(); document.documentElement.lang = LANG; applyGameTranslations(); const q = new URLSearchParams(location.search); renderDeckOptions(q.get('deck') || localStorage.getItem(K.active) || ''); syncStartDeckOptions(); showStartScreen() }
+
+function getOfflineGameImageUrls() {
+  const collect = [];
+  collect.push(...S.deck, ...S.hand, ...S.discard, ...S.placed.map(p => p.card));
+  return collect.map(c => imgUrl(c)).filter(Boolean);
+}
+
+async function initOfflineSupport() {
+  if (!e.offlineBtn) return;
+  const reg = await registerOfflineServiceWorker();
+  if (reg) {
+    offlineReady = true;
+    e.offlineBtn.textContent = gt('ui.offlineReady');
+  }
+  e.offlineBtn.addEventListener('click', async () => {
+    e.offlineBtn.disabled = true;
+    e.offlineBtn.textContent = gt('ui.offlineCaching');
+    const res = await cacheOfflinePack(getOfflineGameImageUrls());
+    if (res.ok) {
+      offlineReady = true;
+      e.offlineBtn.textContent = gt('ui.offlineReady');
+      toast(gt('toast.offlineReady'));
+    } else {
+      e.offlineBtn.textContent = gt('ui.offlineMode');
+      toast(gt('toast.offlineFailed'));
+    }
+    setTimeout(() => { e.offlineBtn.disabled = false; e.offlineBtn.textContent = offlineReady ? gt('ui.offlineReady') : gt('ui.offlineMode') }, 1200);
+  });
+}
 function dHint(t, x, y) { if (!t) { e.hint.hidden = true; return } e.hint.textContent = t; e.hint.hidden = false; const r = e.hint.getBoundingClientRect(); let l = x + 34, tp = y - r.height / 2; if (l + r.width > innerWidth - 10) l = x - r.width - 34; if (l < 10) l = 10; if (tp < 10) tp = 10; if (tp + r.height > innerHeight - 10) tp = innerHeight - r.height - 10; e.hint.style.left = `${l}px`; e.hint.style.top = `${tp}px`; e.hint.style.transform = 'none' }
 function ghost(c) { const g = cardFace(c, 'drag-ghost hand-card'); g.style.pointerEvents = 'none'; document.body.appendChild(g); return g }
 function boardPt(x, y) { const m = gridMetrics(); const localX = x - m.r.left - m.cardW / 2; const localY = y - m.r.top - m.cardH / 2; const ix = Math.round((localX - m.offX) / m.cell); const iy = Math.round((localY - m.offY) / m.cell); return { x: m.offX + ix * m.cell, y: m.offY + iy * m.cell } }
@@ -148,6 +180,7 @@ e.markers.addEventListener('pointerdown', ev => { const t = ev.target; if (!(t i
 addEventListener('keydown', ev => { if (ev.key !== 'Escape') return; if (!e.cardModal.hidden) e.cardModal.hidden = true; else if (!e.disModal.hidden) e.disModal.hidden = true; else if (!e.deckClosePrompt.hidden) e.deckClosePrompt.hidden = true; else if (!e.deckModal.hidden) askCloseDeckWithShufflePrompt(); else if (!e.deckActions.hidden) e.deckActions.hidden = true; else if (!e.bagModal.hidden) e.bagModal.hidden = true });
 addEventListener('fullscreenchange', onFullscreenChange); addEventListener('resize', relayout); addEventListener('beforeunload', () => { if (S.saveT) clearTimeout(S.saveT); saveNow() });
 applyGridVars(); init();
+initOfflineSupport();
 
 async function initCloudSync() {
   try {
