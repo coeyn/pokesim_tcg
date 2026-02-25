@@ -290,6 +290,12 @@ h2 {
   align-items: start;
 }
 
+.prize-wrap {
+  display: grid;
+  justify-items: center;
+  align-items: start;
+}
+
 .marker-bag-btn {
   position: relative;
   width: 42px;
@@ -302,6 +308,18 @@ h2 {
   line-height: 1;
   display: grid;
   place-items: center;
+  cursor: pointer;
+}
+
+.prize-draw-btn {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #174846;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.74rem;
+  padding: 0.34rem 0.45rem;
+  min-width: 100%;
   cursor: pointer;
 }
 

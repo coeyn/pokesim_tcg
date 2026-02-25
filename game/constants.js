@@ -45,6 +45,7 @@ export const gameI18n = {
     "ui.hideHand": "Masquer la main",
     "ui.draw": "Piocher",
     "ui.setupPrizes": "Poser 6 recompenses",
+    "ui.drawPrize": "Piocher recompense",
     "ui.deckEmpty": "Pioche vide",
     "ui.startTitle": "Mode Jeu",
     "ui.startSubtitle": "Choisis un deck puis lance la partie.",
@@ -91,6 +92,7 @@ export const gameI18n = {
     "toast.noSaved": "Aucune partie a reprendre.",
     "toast.prizesPlaced": "6 recompenses posees.",
     "toast.prizesUnavailable": "Pas assez de cartes pour les recompenses.",
+    "toast.noPrizeLeft": "Aucune recompense restante.",
   },
   en: {
     "ui.deckAuto": "Auto deck (API)",
@@ -100,6 +102,7 @@ export const gameI18n = {
     "ui.hideHand": "Hide hand",
     "ui.draw": "Draw",
     "ui.setupPrizes": "Set 6 prize cards",
+    "ui.drawPrize": "Draw prize",
     "ui.deckEmpty": "Deck empty",
     "ui.startTitle": "Game Mode",
     "ui.startSubtitle": "Choose a deck and start the game.",
@@ -146,6 +149,7 @@ export const gameI18n = {
     "toast.noSaved": "No saved game to resume.",
     "toast.prizesPlaced": "6 prize cards set.",
     "toast.prizesUnavailable": "Not enough cards for prize setup.",
+    "toast.noPrizeLeft": "No prize cards left.",
   },
   es: {
     "ui.deckAuto": "Mazo auto (API)",
@@ -155,6 +159,7 @@ export const gameI18n = {
     "ui.hideHand": "Ocultar mano",
     "ui.draw": "Robar",
     "ui.setupPrizes": "Colocar 6 premios",
+    "ui.drawPrize": "Robar premio",
     "ui.deckEmpty": "Mazo vacio",
     "ui.startTitle": "Modo Juego",
     "ui.startSubtitle": "Elige un mazo y empieza la partida.",
@@ -201,5 +206,6 @@ export const gameI18n = {
     "toast.noSaved": "No hay partida guardada para reanudar.",
     "toast.prizesPlaced": "6 premios colocados.",
     "toast.prizesUnavailable": "No hay cartas suficientes para premios.",
+    "toast.noPrizeLeft": "No quedan premios.",
   },
 };

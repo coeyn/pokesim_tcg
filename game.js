@@ -2,9 +2,9 @@ import { CATEGORY_BY_LANG, GRID, K, REG, SUPPORTED_LANGS, gameI18n, mTypes, name
 import { cacheOfflinePack, registerOfflineServiceWorker } from "./offline/offline.js";
 let firebaseApi = null;
 
-const e = { fs: document.getElementById('fullscreenBtn'), deckSel: document.getElementById('gameDeckSelect'), loadDeck: document.getElementById('loadDeckBtn'), reset: document.getElementById('resetGameBtn'), handT: document.getElementById('handToggleBtn'), showHand: document.getElementById('showHandBtn'), draw: document.getElementById('drawBtn'), setupPrizes: document.getElementById('setupPrizesBtn'), viewDeck: document.getElementById('viewDeckBtn'), shuffle: document.getElementById('shuffleDeckBtn'), deckMenu: document.getElementById('deckMenuBtn'), deckZone: document.getElementById('deckZone'), deckCount: document.getElementById('deckCount'), handCards: document.getElementById('handCards'), discardCount: document.getElementById('discardCount'), discardZone: document.getElementById('discardZone'), discardTop: document.getElementById('discardTopCard'), board: document.getElementById('boardCardsLayer'), cardModal: document.getElementById('cardModal'), closeCard: document.getElementById('closeCardModalBtn'), cardContent: document.getElementById('cardModalContent'), disModal: document.getElementById('discardModal'), closeDis: document.getElementById('closeDiscardModalBtn'), disList: document.getElementById('discardList'), deckModal: document.getElementById('deckModal'), closeDeck: document.getElementById('closeDeckModalBtn'), deckList: document.getElementById('deckList'), deckClosePrompt: document.getElementById('deckClosePromptModal'), deckClosePromptShuffle: document.getElementById('deckClosePromptShuffleBtn'), deckClosePromptNoShuffle: document.getElementById('deckClosePromptNoShuffleBtn'), deckActions: document.getElementById('deckActionsModal'), closeDeckActions: document.getElementById('closeDeckActionsModalBtn'), hint: document.getElementById('dragActionHint'), toast: document.getElementById('actionToast'), playmat: document.querySelector('.playmat'), markers: document.getElementById('markerLayer'), bag: document.getElementById('markerBagBtn'), bagModal: document.getElementById('markerBagModal'), closeBag: document.getElementById('closeMarkerBagModalBtn'), catalog: document.getElementById('markerCatalog'), startScreen: document.getElementById('gameStartScreen'), startDeckSel: document.getElementById('startDeckSelect'), startBtn: document.getElementById('startGameBtn'), resumeBtn: document.getElementById('resumeGameBtn'), offlineBtn: document.getElementById('offlineCacheBtnGame') };
+const e = { fs: document.getElementById('fullscreenBtn'), deckSel: document.getElementById('gameDeckSelect'), loadDeck: document.getElementById('loadDeckBtn'), reset: document.getElementById('resetGameBtn'), handT: document.getElementById('handToggleBtn'), showHand: document.getElementById('showHandBtn'), draw: document.getElementById('drawBtn'), setupPrizes: document.getElementById('setupPrizesBtn'), prizeDraw: document.getElementById('prizeDrawBtn'), viewDeck: document.getElementById('viewDeckBtn'), shuffle: document.getElementById('shuffleDeckBtn'), deckMenu: document.getElementById('deckMenuBtn'), deckZone: document.getElementById('deckZone'), deckCount: document.getElementById('deckCount'), handCards: document.getElementById('handCards'), discardCount: document.getElementById('discardCount'), discardZone: document.getElementById('discardZone'), discardTop: document.getElementById('discardTopCard'), board: document.getElementById('boardCardsLayer'), cardModal: document.getElementById('cardModal'), closeCard: document.getElementById('closeCardModalBtn'), cardContent: document.getElementById('cardModalContent'), disModal: document.getElementById('discardModal'), closeDis: document.getElementById('closeDiscardModalBtn'), disList: document.getElementById('discardList'), deckModal: document.getElementById('deckModal'), closeDeck: document.getElementById('closeDeckModalBtn'), deckList: document.getElementById('deckList'), deckClosePrompt: document.getElementById('deckClosePromptModal'), deckClosePromptShuffle: document.getElementById('deckClosePromptShuffleBtn'), deckClosePromptNoShuffle: document.getElementById('deckClosePromptNoShuffleBtn'), deckActions: document.getElementById('deckActionsModal'), closeDeckActions: document.getElementById('closeDeckActionsModalBtn'), hint: document.getElementById('dragActionHint'), toast: document.getElementById('actionToast'), playmat: document.querySelector('.playmat'), markers: document.getElementById('markerLayer'), bag: document.getElementById('markerBagBtn'), bagModal: document.getElementById('markerBagModal'), closeBag: document.getElementById('closeMarkerBagModalBtn'), catalog: document.getElementById('markerCatalog'), startScreen: document.getElementById('gameStartScreen'), startDeckSel: document.getElementById('startDeckSelect'), startBtn: document.getElementById('startGameBtn'), resumeBtn: document.getElementById('resumeGameBtn'), offlineBtn: document.getElementById('offlineCacheBtnGame') };
 let LANG = 'fr';
-let S = { deck: [], hand: [], discard: [], placed: [], markers: [], nextPlaced: 1, nextMarker: 1, deckId: '', view: 'all', prizeDone: false, drag: null, mDrag: null, ghost: null, mGhost: null, hideEl: null, snap: null, snapPos: null, saveT: null, toastT: null, blockDis: 0, hydr: false };
+let S = { deck: [], hand: [], discard: [], placed: [], prizes: [], markers: [], nextPlaced: 1, nextMarker: 1, deckId: '', view: 'all', prizeDone: false, drag: null, mDrag: null, ghost: null, mGhost: null, hideEl: null, snap: null, snapPos: null, saveT: null, toastT: null, blockDis: 0, hydr: false };
 let currentCloudUser = null;
 let offlineReady = false;
 
@@ -14,7 +14,7 @@ const layerRank = c => { const k = inferKind(c); if (k === 'pokemon') return 3; 
 const handHidden = () => document.body.classList.contains('hand-hidden');
 const saveNow = () => {
   if (S.hydr) return;
-  const state = { deck: S.deck, hand: S.hand, discard: S.discard, placed: S.placed, markers: S.markers, nextPlaced: S.nextPlaced, nextMarker: S.nextMarker, deckId: S.deckId, view: S.view, prizeDone: S.prizeDone, hidden: handHidden() };
+  const state = { deck: S.deck, hand: S.hand, discard: S.discard, placed: S.placed, prizes: S.prizes, markers: S.markers, nextPlaced: S.nextPlaced, nextMarker: S.nextMarker, deckId: S.deckId, view: S.view, prizeDone: S.prizeDone, hidden: handHidden() };
   localStorage.setItem(K.save, JSON.stringify(state));
   if (currentCloudUser && firebaseApi) {
     firebaseApi.saveUserData(currentCloudUser.uid, { gameState: state }).catch(() => {});
@@ -84,6 +84,10 @@ function counters() {
   e.draw.disabled = S.deck.length === 0;
   e.draw.textContent = S.deck.length === 0 ? gt('ui.deckEmpty') : gt('ui.draw');
   if (e.setupPrizes) e.setupPrizes.disabled = S.prizeDone || S.deck.length < 6;
+  if (e.prizeDraw) {
+    e.prizeDraw.disabled = S.prizes.length === 0;
+    e.prizeDraw.textContent = `${gt('ui.drawPrize')} (${S.prizes.length})`;
+  }
   saveSoon();
 }
 function renderHand() { e.handCards.innerHTML = ''; S.hand.forEach(c => { const el = cardFace(c, 'hand-card'); el.dataset.cardId = c.id; e.handCards.appendChild(el) }); sizeHand(); saveSoon() }
@@ -114,13 +118,13 @@ async function apiDeck() {
   return Array.from({ length: 60 }, (_, i) => ({ ...refill[i % refill.length], id: `${refill[i % refill.length].id}-X${i + 1}` }));
 }
 function savedCards(id) { if (!id) return null; let arr = []; try { arr = JSON.parse(localStorage.getItem(K.decks) || '[]') } catch { }; if (!Array.isArray(arr)) return null; const d = arr.find(x => x.id === id); return d && Array.isArray(d.cards) ? d.cards : null }
-async function newGame(id = '') { S.hydr = true; S = { ...S, deck: [], hand: [], discard: [], placed: [], markers: [], nextPlaced: 1, nextMarker: 1, deckId: id || '', view: 'all', prizeDone: false, drag: null, mDrag: null, ghost: null, mGhost: null, hideEl: null, blockDis: 0 }; const sv = savedCards(S.deckId); if (Array.isArray(sv) && sv.length === 60) { localStorage.setItem(K.active, S.deckId); S.deck = fromSaved(sv); sh(S.deck); renderAll(); S.hydr = false; saveNow(); toast(gt('toast.deckLoaded')); return } localStorage.removeItem(K.active); toast(gt('toast.loadingCards')); try { S.deck = await apiDeck() } catch { S.deck = fakeDeck(); toast(gt('toast.apiFallback')) } renderAll(); S.hydr = false; saveNow() }
-function restore() { let st = null; try { st = JSON.parse(localStorage.getItem(K.save) || 'null') } catch { }; if (!st || !Array.isArray(st.deck) || !Array.isArray(st.hand) || !Array.isArray(st.discard) || !Array.isArray(st.placed) || !Array.isArray(st.markers)) return false; S.hydr = true; S.deck = st.deck; S.hand = st.hand; S.discard = st.discard; S.placed = st.placed; S.markers = st.markers; S.nextPlaced = Number(st.nextPlaced) || 1; S.nextMarker = Number(st.nextMarker) || 1; S.deckId = typeof st.deckId === 'string' ? st.deckId : ''; S.view = typeof st.view === 'string' ? st.view : 'all'; S.prizeDone = Boolean(st.prizeDone); renderDeckOptions(S.deckId); renderAll(); setHand(Boolean(st.hidden)); S.hydr = false; toast(gt('toast.restored')); return true }
+async function newGame(id = '') { S.hydr = true; S = { ...S, deck: [], hand: [], discard: [], placed: [], prizes: [], markers: [], nextPlaced: 1, nextMarker: 1, deckId: id || '', view: 'all', prizeDone: false, drag: null, mDrag: null, ghost: null, mGhost: null, hideEl: null, blockDis: 0 }; const sv = savedCards(S.deckId); if (Array.isArray(sv) && sv.length === 60) { localStorage.setItem(K.active, S.deckId); S.deck = fromSaved(sv); sh(S.deck); renderAll(); S.hydr = false; saveNow(); toast(gt('toast.deckLoaded')); return } localStorage.removeItem(K.active); toast(gt('toast.loadingCards')); try { S.deck = await apiDeck() } catch { S.deck = fakeDeck(); toast(gt('toast.apiFallback')) } renderAll(); S.hydr = false; saveNow() }
+function restore() { let st = null; try { st = JSON.parse(localStorage.getItem(K.save) || 'null') } catch { }; if (!st || !Array.isArray(st.deck) || !Array.isArray(st.hand) || !Array.isArray(st.discard) || !Array.isArray(st.placed) || !Array.isArray(st.markers)) return false; S.hydr = true; S.deck = st.deck; S.hand = st.hand; S.discard = st.discard; S.placed = st.placed; S.prizes = Array.isArray(st.prizes) ? st.prizes : []; S.markers = st.markers; S.nextPlaced = Number(st.nextPlaced) || 1; S.nextMarker = Number(st.nextMarker) || 1; S.deckId = typeof st.deckId === 'string' ? st.deckId : ''; S.view = typeof st.view === 'string' ? st.view : 'all'; S.prizeDone = Boolean(st.prizeDone); renderDeckOptions(S.deckId); renderAll(); setHand(Boolean(st.hidden)); S.hydr = false; toast(gt('toast.restored')); return true }
 function init() { LANG = resolveLanguage(); document.documentElement.lang = LANG; applyGameTranslations(); const q = new URLSearchParams(location.search); renderDeckOptions(q.get('deck') || localStorage.getItem(K.active) || ''); syncStartDeckOptions(); showStartScreen() }
 
 function getOfflineGameImageUrls() {
   const collect = [];
-  collect.push(...S.deck, ...S.hand, ...S.discard, ...S.placed.map(p => p.card));
+  collect.push(...S.deck, ...S.hand, ...S.discard, ...S.prizes, ...S.placed.map(p => p.card));
   return collect.map(c => imgUrl(c)).filter(Boolean);
 }
 
@@ -176,37 +180,33 @@ function openDis() { renderDisList(); e.disModal.hidden = false }
 function closeDis() { e.disModal.hidden = true }
 function renderDeckList() { e.deckList.innerHTML = ''; if (!S.deck.length) { const p = document.createElement('p'); p.className = 'discard-list-empty'; p.textContent = gt('ui.emptyDeck'); e.deckList.appendChild(p); return } [...S.deck].reverse().forEach(c => { const el = cardFace(c, 'hand-card deck-list-card'); el.dataset.deckTakeId = c.id; el.appendChild(actionBtn('deck-item-btn', gt('ui.retrieve'), 'deckTakeId', c.id)); e.deckList.appendChild(el) }) }
 function revealCard(c) { if (c && c.faceDown) { c.faceDown = false; c.isPrize = false } return c }
-function prizeSetupPositions() {
-  const m = gridMetrics();
-  const gap = m.cell * 1.2;
-  const sx = m.offX + m.cell * 1.2;
-  const sy = m.offY + m.cell * 1.2;
-  const out = [];
-  for (let i = 0; i < 6; i += 1) {
-    const col = Math.floor(i / 3);
-    const row = i % 3;
-    out.push({ x: sx + col * (m.cardW + gap), y: sy + row * (m.cardH + gap) });
-  }
-  return out;
-}
 function setupPrizes() {
   if (S.prizeDone || S.deck.length < 6) {
     toast(gt('toast.prizesUnavailable'));
     return;
   }
-  const pos = prizeSetupPositions();
+  S.prizes = [];
   for (let i = 0; i < 6; i += 1) {
     const card = S.deck.pop();
     if (!card) break;
     card.faceDown = true;
     card.isPrize = true;
-    S.placed.push({ id: S.nextPlaced++, card, x: pos[i].x, y: pos[i].y });
+    S.prizes.push(card);
   }
   S.prizeDone = true;
-  renderBoard();
   counters();
   if (!e.deckModal.hidden) renderDeckList();
   toast(gt('toast.prizesPlaced'));
+}
+function drawPrize() {
+  if (!S.prizes.length) {
+    toast(gt('toast.noPrizeLeft'));
+    return;
+  }
+  const card = revealCard(S.prizes.pop());
+  S.hand.push(card);
+  renderHand();
+  counters();
 }
 function draw() { if (!S.deck.length) return; S.hand.push(revealCard(S.deck.pop())); counters(); renderHand(); if (!e.deckModal.hidden) renderDeckList() }
 function takeDis(id) { const i = S.discard.findIndex(c => c.id === id); if (i < 0) return; const [c] = S.discard.splice(i, 1); S.hand.push(revealCard(c)); renderHand(); renderDiscardTop(); counters(); renderDisList() }
@@ -234,6 +234,7 @@ e.handT.addEventListener('click', () => setHand(!handHidden()));
 e.showHand.addEventListener('click', () => setHand(false));
 e.draw.addEventListener('click', ev => { ev.stopPropagation(); draw(); e.deckActions.hidden = true });
 e.setupPrizes.addEventListener('click', ev => { ev.stopPropagation(); setupPrizes(); e.deckActions.hidden = true });
+e.prizeDraw.addEventListener('click', ev => { ev.stopPropagation(); drawPrize() });
 e.viewDeck.addEventListener('click', ev => { ev.stopPropagation(); e.deckActions.hidden = true; renderDeckList(); e.deckModal.hidden = false });
 e.shuffle.addEventListener('click', ev => { ev.stopPropagation(); mix(); e.deckActions.hidden = true });
 e.deckMenu.addEventListener('click', ev => { ev.stopPropagation(); e.deckActions.hidden = false }); e.deckZone.addEventListener('click', () => e.deckActions.hidden = false);
