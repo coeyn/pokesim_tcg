@@ -1510,6 +1510,15 @@ if (copyTransferBtn && deckTransferData) {
 if (clearTransferBtn && deckTransferData) {
   clearTransferBtn.addEventListener("click", () => {
     deckTransferData.value = "";
+    const deck = getDeckById(selectedDeckId);
+    if (deck) {
+      deck.cards = [];
+      saveDecksToStorage();
+      renderDeckUi();
+      renderCards(currentVisibleCards, currentSetName);
+      setDeckStatus(`JSON et preview vides pour: ${deck.name}.`);
+      return;
+    }
     setDeckStatus("Zone JSON videe.");
   });
 }
