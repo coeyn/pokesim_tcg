@@ -378,17 +378,14 @@ function syncDeckTransferPreview(deck) {
 
   const compactCards = Array.from(countById.values())
     .sort((a, b) => b.qty - a.qty || a.id.localeCompare(b.id))
-    .map((item) => {
-      const compactItem = { id: item.id, qty: item.qty };
-      if (item.name) {
-        compactItem.name = item.name;
-      }
-      return compactItem;
-    });
+    .reduce((acc, item) => {
+      acc[item.id] = item.qty;
+      return acc;
+    }, {});
 
   const payload = {
-    version: 2,
-    format: "simtcg-deck-compact",
+    version: 3,
+    format: "simtcg-deck-id-qty-map",
     deck: {
       name: deck.name,
       totalCards: cards.length,
