@@ -860,6 +860,50 @@ function expandCardsNode(cardsNode) {
 }
 
 function parseDeckFileToDecks(fileData) {
+  return parseDeckFileToDecksAsync(fileData);
+}
+
+function extractQtyMapFromCardsNode(cardsNode) {
+  if (!cardsNode) {
+    return null;
+  }
+  const qtyMap = {};
+  if (!Array.isArray(cardsNode) && typeof cardsNode === "object") {
+    Object.entries(cardsNode).forEach(([id, qty]) => addQtyToMap(qtyMap, id, qty));
+    return Object.keys(qtyMap).length ? qtyMap : null;
+  }
+  if (!Array.isArray(cardsNode)) {
+    return null;
+  }
+  let foundCompact = false;
+  cardsNode.forEach((item) => {
+    if (typeof item === "string") {
+      addQtyToMap(qtyMap, item, 1);
+      foundCompact = true;
+      return;
+    }
+    if (!item || typeof item !== "object" || !("id" in item)) {
+      return;
+    }
+    if ("qty" in item && !("image" in item) && !("category" in item) && !("kind" in item)) {
+      addQtyToMap(qtyMap, item.id, item.qty);
+      foundCompact = true;
+      return;
+    }
+  });
+  return foundCompact && Object.keys(qtyMap).length ? qtyMap : null;
+}
+
+async function parseDeckNodeCards(deckNode) {
+  const cardsNode = deckNode?.cards;
+  const compactMap = extractQtyMapFromCardsNode(cardsNode);
+  if (compactMap) {
+    return resolveDeckCardsFromQtyMap(compactMap);
+  }
+  return normalizeDeckCards(expandCardsNode(cardsNode));
+}
+
+async function parseDeckFileToDecksAsync(fileData) {
   if (!fileData) {
     return [];
   }
@@ -870,19 +914,20 @@ function parseDeckFileToDecks(fileData) {
       : [fileData.deck || fileData];
 
   const parsed = [];
-  asDeckObjects.forEach((deckNode, idx) => {
+  for (let idx = 0; idx < asDeckObjects.length; idx += 1) {
+    const deckNode = asDeckObjects[idx];
     if (!deckNode || typeof deckNode !== "object") {
-      return;
+      continue;
     }
-    const cards = normalizeDeckCards(expandCardsNode(deckNode.cards));
+    const cards = await parseDeckNodeCards(deckNode);
     if (!cards.length) {
-      return;
+      continue;
     }
     parsed.push({
       name: String(deckNode.name || `Deck Base ${idx + 1}`).trim() || `Deck Base ${idx + 1}`,
       cards,
     });
-  });
+  }
   return parsed;
 }
 
@@ -900,7 +945,7 @@ async function loadBaseDeckDefinitions() {
         continue;
       }
       const fileData = await response.json();
-      const decksInFile = parseDeckFileToDecks(fileData);
+      const decksInFile = await parseDeckFileToDecks(fileData);
       decksInFile.forEach((deck, idx) => {
         allDecks.push({
           id: `${BASE_DECK_ID_PREFIX}${file}#${idx + 1}`,
