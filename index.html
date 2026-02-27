@@ -53,15 +53,17 @@
             <button id="deleteDeckBtn" type="button">Supprimer</button>
           </div>
           <section class="starter-tools">
-            <p class="starter-tools-title" data-i18n="deck.toolsTitle">Decks de base</p>
+            <p class="starter-tools-title" data-i18n="deck.transferTitle">Import / Export</p>
             <div class="starter-tools-actions">
-              <button id="addStarterDecksBtn" type="button" data-i18n="deck.addStarterDecks">Ajouter decks de base</button>
+              <button id="exportSelectedDeckBtn" type="button" data-i18n="deck.exportSelected">Exporter le deck selectionne</button>
+              <button id="exportAllDecksBtn" type="button" data-i18n="deck.exportAll">Exporter tous les decks</button>
             </div>
-            <label for="deckImportName" data-i18n="deck.importNameLabel">Nom du deck a importer</label>
-            <input id="deckImportName" class="deck-input" type="text" maxlength="48" placeholder="Deck importe">
-            <label for="deckImportIds" data-i18n="deck.importIdsLabel">IDs cartes (1 par ligne ou separes par virgule)</label>
-            <textarea id="deckImportIds" class="deck-import-textarea" rows="4" placeholder="sv1-1&#10;sv1-2&#10;sv1-3"></textarea>
-            <button id="importDeckByIdsBtn" type="button" data-i18n="deck.importByIds">Creer deck depuis IDs</button>
+            <label for="deckTransferData" data-i18n="deck.transferLabel">JSON deck(s)</label>
+            <textarea id="deckTransferData" class="deck-import-textarea" rows="6" placeholder='{"version":1,"decks":[...]}'></textarea>
+            <div class="starter-tools-actions">
+              <button id="importDecksBtn" type="button" class="primary" data-i18n="deck.importJson">Importer JSON</button>
+              <button id="clearTransferBtn" type="button" data-i18n="deck.clearJson">Vider</button>
+            </div>
           </section>
           <section class="energy-deck-builder">
             <p class="energy-deck-title">Energies de base</p>
