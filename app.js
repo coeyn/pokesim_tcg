@@ -21,6 +21,7 @@ let searchQuery = "";
 const MAX_DECK_SIZE = 60;
 const MAX_CARD_COPIES = 4;
 const STORAGE_DECKS_KEY = "simtcg.decks";
+const BASE_DECKS_INDEX_URL = "starter-decks/index.json";
 let decks = [];
 let selectedDeckId = "";
 
@@ -43,6 +44,7 @@ const deckStatus = document.getElementById("deckStatus");
 const energyDeckControls = document.getElementById("energyDeckControls");
 const deckPreviewStatus = document.getElementById("deckPreviewStatus");
 const deckPreviewList = document.getElementById("deckPreviewList");
+const loadBaseDecksBtn = document.getElementById("loadBaseDecksBtn");
 const exportSelectedDeckBtn = document.getElementById("exportSelectedDeckBtn");
 const exportAllDecksBtn = document.getElementById("exportAllDecksBtn");
 const importDecksBtn = document.getElementById("importDecksBtn");
@@ -651,6 +653,10 @@ function parseImportPayload(raw) {
     return [];
   }
   const parsed = JSON.parse(raw);
+  return parseImportData(parsed);
+}
+
+function parseImportData(parsed) {
   if (Array.isArray(parsed)) {
     return parsed;
   }
@@ -661,6 +667,27 @@ function parseImportPayload(raw) {
     return [parsed];
   }
   return [];
+}
+
+function importRawDecks(rawDecks) {
+  if (!Array.isArray(rawDecks) || !rawDecks.length) {
+    return [];
+  }
+  const created = [];
+  rawDecks.forEach((rawDeck, idx) => {
+    const deck = createDeckFromImportedData(rawDeck, idx);
+    if (deck) {
+      decks.push(deck);
+      created.push(deck);
+    }
+  });
+  if (created.length) {
+    selectedDeckId = created[0].id;
+    saveDecksToStorage();
+    renderDeckUi();
+    renderCards(currentVisibleCards, currentSetName);
+  }
+  return created;
 }
 
 function importDecksFromJson() {
@@ -678,25 +705,54 @@ function importDecksFromJson() {
     setDeckStatus("Aucun deck valide a importer.");
     return;
   }
-
-  const created = [];
-  importedRaw.forEach((rawDeck, idx) => {
-    const deck = createDeckFromImportedData(rawDeck, idx);
-    if (deck) {
-      decks.push(deck);
-      created.push(deck);
-    }
-  });
+  const created = importRawDecks(importedRaw);
 
   if (!created.length) {
     setDeckStatus("Import vide apres validation.");
     return;
   }
-  selectedDeckId = created[0].id;
-  saveDecksToStorage();
-  renderDeckUi();
-  renderCards(currentVisibleCards, currentSetName);
   setDeckStatus(`${created.length} deck(s) importe(s).`);
+}
+
+async function loadBaseDecksFromFolder() {
+  setDeckStatus("Chargement des decks de base...");
+  const indexResponse = await fetch(BASE_DECKS_INDEX_URL, { cache: "no-store" });
+  if (!indexResponse.ok) {
+    setDeckStatus("Dossier starter-decks introuvable.");
+    return;
+  }
+  const indexData = await indexResponse.json();
+  const files = Array.isArray(indexData?.files) ? indexData.files.filter(Boolean) : [];
+  if (!files.length) {
+    setDeckStatus("Aucun fichier deck configure dans starter-decks/index.json.");
+    return;
+  }
+
+  const allRawDecks = [];
+  for (let i = 0; i < files.length; i += 1) {
+    const file = files[i];
+    try {
+      const response = await fetch(`starter-decks/${file}`, { cache: "no-store" });
+      if (!response.ok) {
+        continue;
+      }
+      const parsed = await response.json();
+      allRawDecks.push(...parseImportData(parsed));
+    } catch {
+      // ignore one bad file and continue with others
+    }
+  }
+
+  if (!allRawDecks.length) {
+    setDeckStatus("Aucun deck valide charge depuis starter-decks.");
+    return;
+  }
+  const created = importRawDecks(allRawDecks);
+  if (!created.length) {
+    setDeckStatus("Decks de base invalides apres validation.");
+    return;
+  }
+  setDeckStatus(`${created.length} deck(s) de base charges.`);
 }
 
 function showCardsLoading(message) {
@@ -1018,6 +1074,18 @@ deckSelect.addEventListener("change", () => {
 
 createDeckBtn.addEventListener("click", createOrRenameDeck);
 deleteDeckBtn.addEventListener("click", deleteSelectedDeck);
+if (loadBaseDecksBtn) {
+  loadBaseDecksBtn.addEventListener("click", async () => {
+    loadBaseDecksBtn.disabled = true;
+    try {
+      await loadBaseDecksFromFolder();
+    } catch {
+      setDeckStatus("Erreur pendant le chargement des decks de base.");
+    } finally {
+      loadBaseDecksBtn.disabled = false;
+    }
+  });
+}
 if (exportSelectedDeckBtn) {
   exportSelectedDeckBtn.addEventListener("click", exportSelectedDeck);
 }

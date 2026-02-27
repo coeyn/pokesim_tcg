@@ -52,15 +52,16 @@
             <button id="createDeckBtn" type="button" class="primary">Creer / Renommer</button>
             <button id="deleteDeckBtn" type="button">Supprimer</button>
           </div>
-          <section class="starter-tools">
-            <p class="starter-tools-title" data-i18n="deck.transferTitle">Import / Export</p>
-            <div class="starter-tools-actions">
+          <section class="deck-transfer-tools">
+            <p class="deck-transfer-tools-title" data-i18n="deck.transferTitle">Import / Export</p>
+            <div class="deck-transfer-tools-actions">
+              <button id="loadBaseDecksBtn" type="button" data-i18n="deck.loadBaseDecks">Charger decks de base (dossier)</button>
               <button id="exportSelectedDeckBtn" type="button" data-i18n="deck.exportSelected">Exporter le deck selectionne</button>
               <button id="exportAllDecksBtn" type="button" data-i18n="deck.exportAll">Exporter tous les decks</button>
             </div>
             <label for="deckTransferData" data-i18n="deck.transferLabel">JSON deck(s)</label>
             <textarea id="deckTransferData" class="deck-import-textarea" rows="6" placeholder='{"version":1,"decks":[...]}'></textarea>
-            <div class="starter-tools-actions">
+            <div class="deck-transfer-tools-actions">
               <button id="importDecksBtn" type="button" class="primary" data-i18n="deck.importJson">Importer JSON</button>
               <button id="clearTransferBtn" type="button" data-i18n="deck.clearJson">Vider</button>
             </div>

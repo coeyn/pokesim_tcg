@@ -330,7 +330,7 @@ button:hover {
   padding: 0.42rem 0.5rem;
 }
 
-.starter-tools {
+.deck-transfer-tools {
   margin-top: 0.55rem;
   border: 1px solid var(--line);
   border-radius: 10px;
@@ -340,18 +340,18 @@ button:hover {
   gap: 0.35rem;
 }
 
-.starter-tools-title {
+.deck-transfer-tools-title {
   margin: 0;
   font-size: 0.9rem;
   font-weight: 600;
 }
 
-.starter-tools-actions {
+.deck-transfer-tools-actions {
   display: flex;
   gap: 0.35rem;
 }
 
-.starter-tools label {
+.deck-transfer-tools label {
   font-size: 0.8rem;
   color: var(--muted);
 }
