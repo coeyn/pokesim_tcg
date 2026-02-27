@@ -23,6 +23,7 @@ const MAX_CARD_COPIES = 4;
 const STORAGE_DECKS_KEY = "simtcg.decks";
 let decks = [];
 let selectedDeckId = "";
+let transferInputTimer = null;
 
 const languageSelect = document.getElementById("language");
 const playLink = document.querySelector(".play-link");
@@ -396,6 +397,106 @@ function syncDeckTransferPreview(deck) {
   if (copyTransferBtn) {
     copyTransferBtn.disabled = false;
   }
+}
+
+function buildTemplateMap(deck) {
+  const map = new Map();
+  const cards = Array.isArray(deck?.cards) ? deck.cards : [];
+  cards.forEach((card) => {
+    const id = String(card?.id || "").trim();
+    if (!id || map.has(id)) {
+      return;
+    }
+    map.set(id, card);
+  });
+  return map;
+}
+
+function buildCardFromId(id, templateMap) {
+  const cardId = String(id || "").trim();
+  if (!cardId) {
+    return null;
+  }
+  if (isBasicEnergyId(cardId)) {
+    const typeKey = cardId.replace("basic-energy-", "");
+    if (basicEnergyTypeKeys.includes(typeKey)) {
+      return buildBasicEnergyCard(typeKey);
+    }
+  }
+  const template = templateMap.get(cardId);
+  if (template) {
+    return { ...template };
+  }
+  return {
+    id: cardId,
+    name: cardId,
+    image: null,
+    type: "",
+    category: "",
+    kind: "pokemon",
+  };
+}
+
+function expandCardMapToArray(cardMap, templateMap) {
+  const out = [];
+  const entries = Object.entries(cardMap || {});
+  entries.forEach(([id, rawQty]) => {
+    const qty = Math.max(0, Math.min(MAX_DECK_SIZE, Number(rawQty) || 0));
+    for (let i = 0; i < qty; i += 1) {
+      const card = buildCardFromId(id, templateMap);
+      if (card) {
+        out.push(card);
+      }
+    }
+  });
+  return out;
+}
+
+function applyTransferJsonToSelectedDeck(rawJson) {
+  const targetDeck = getDeckById(selectedDeckId);
+  if (!targetDeck) {
+    setDeckStatus("Selectionne un deck avant edition JSON.");
+    return false;
+  }
+  let parsed;
+  try {
+    parsed = JSON.parse(rawJson);
+  } catch {
+    return false;
+  }
+  const sourceDeck = parsed?.deck || parsed;
+  const templateMap = buildTemplateMap(targetDeck);
+  let rawCards = [];
+
+  if (sourceDeck && sourceDeck.cards && !Array.isArray(sourceDeck.cards) && typeof sourceDeck.cards === "object") {
+    rawCards = expandCardMapToArray(sourceDeck.cards, templateMap);
+  } else if (Array.isArray(sourceDeck?.cards)) {
+    rawCards = sourceDeck.cards.map((card) => {
+      if (card && typeof card === "object" && "id" in card && "qty" in card && !Array.isArray(card)) {
+        const qty = Math.max(0, Math.min(MAX_DECK_SIZE, Number(card.qty) || 0));
+        const cards = [];
+        for (let i = 0; i < qty; i += 1) {
+          const built = buildCardFromId(card.id, templateMap);
+          if (built) cards.push(built);
+        }
+        return cards;
+      }
+      return buildCardFromId(card?.id || card, templateMap);
+    }).flat().filter(Boolean);
+  } else {
+    return false;
+  }
+
+  const normalized = normalizeImportedCards(rawCards);
+  targetDeck.cards = normalized;
+  if (typeof sourceDeck?.name === "string" && sourceDeck.name.trim()) {
+    targetDeck.name = sourceDeck.name.trim();
+  }
+  saveDecksToStorage();
+  renderDeckUi();
+  renderCards(currentVisibleCards, currentSetName);
+  setDeckStatus(`Deck mis a jour depuis JSON (${targetDeck.cards.length}/60).`);
+  return true;
 }
 
 function renderEnergyDeckControls() {
@@ -950,6 +1051,16 @@ if (clearTransferBtn && deckTransferData) {
   clearTransferBtn.addEventListener("click", () => {
     deckTransferData.value = "";
     setDeckStatus("Zone JSON videe.");
+  });
+}
+if (deckTransferData) {
+  deckTransferData.addEventListener("input", () => {
+    if (transferInputTimer) {
+      clearTimeout(transferInputTimer);
+    }
+    transferInputTimer = setTimeout(() => {
+      applyTransferJsonToSelectedDeck(deckTransferData.value || "");
+    }, 450);
   });
 }
 
