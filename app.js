@@ -21,7 +21,6 @@ let searchQuery = "";
 const MAX_DECK_SIZE = 60;
 const MAX_CARD_COPIES = 4;
 const STORAGE_DECKS_KEY = "simtcg.decks";
-const BASE_DECKS_INDEX_URL = "starter-decks/index.json";
 let decks = [];
 let selectedDeckId = "";
 
@@ -44,10 +43,7 @@ const deckStatus = document.getElementById("deckStatus");
 const energyDeckControls = document.getElementById("energyDeckControls");
 const deckPreviewStatus = document.getElementById("deckPreviewStatus");
 const deckPreviewList = document.getElementById("deckPreviewList");
-const loadBaseDecksBtn = document.getElementById("loadBaseDecksBtn");
-const exportSelectedDeckBtn = document.getElementById("exportSelectedDeckBtn");
-const exportAllDecksBtn = document.getElementById("exportAllDecksBtn");
-const importDecksBtn = document.getElementById("importDecksBtn");
+const copyTransferBtn = document.getElementById("copyTransferBtn");
 const clearTransferBtn = document.getElementById("clearTransferBtn");
 const deckTransferData = document.getElementById("deckTransferData");
 const cardDetailsModal = document.getElementById("cardDetailsModal");
@@ -347,6 +343,31 @@ function renderDeckUi() {
   deleteDeckBtn.disabled = !deck;
   renderDeckPreview(deck);
   renderEnergyDeckControls();
+  syncDeckTransferPreview(deck);
+}
+
+function syncDeckTransferPreview(deck) {
+  if (!deckTransferData) {
+    return;
+  }
+  if (!deck) {
+    deckTransferData.value = "";
+    if (copyTransferBtn) {
+      copyTransferBtn.disabled = true;
+    }
+    return;
+  }
+  const payload = {
+    version: 1,
+    deck: {
+      name: deck.name,
+      cards: Array.isArray(deck.cards) ? deck.cards : [],
+    },
+  };
+  deckTransferData.value = JSON.stringify(payload, null, 2);
+  if (copyTransferBtn) {
+    copyTransferBtn.disabled = false;
+  }
 }
 
 function renderEnergyDeckControls() {
@@ -562,197 +583,6 @@ function removeCardFromSelectedDeck(cardId) {
   setDeckStatus(`${deck.name}: ${deck.cards.length}/60`);
   renderDeckUi();
   renderCards(currentVisibleCards, currentSetName);
-}
-
-function normalizeImportedCards(rawCards) {
-  if (!Array.isArray(rawCards)) {
-    return [];
-  }
-  const out = [];
-  const countById = new Map();
-  for (let i = 0; i < rawCards.length; i += 1) {
-    const normalized = toDeckCard(rawCards[i]);
-    const cardId = normalized.id;
-    const currentCount = countById.get(cardId) || 0;
-    if (!isBasicEnergyId(cardId) && currentCount >= MAX_CARD_COPIES) {
-      continue;
-    }
-    if (out.length >= MAX_DECK_SIZE) {
-      break;
-    }
-    out.push(normalized);
-    countById.set(cardId, currentCount + 1);
-  }
-  return out;
-}
-
-function makeDeckNameUnique(name) {
-  const base = (name || "").trim() || "Deck";
-  if (!decks.some((deck) => deck.name === base)) {
-    return base;
-  }
-  let n = 2;
-  while (decks.some((deck) => deck.name === `${base} ${n}`)) {
-    n += 1;
-  }
-  return `${base} ${n}`;
-}
-
-function createDeckFromImportedData(rawDeck, index = 0) {
-  const name = makeDeckNameUnique(rawDeck?.name || `Imported Deck ${index + 1}`);
-  const cards = normalizeImportedCards(rawDeck?.cards || []);
-  if (!cards.length) {
-    return null;
-  }
-  return {
-    id: `deck-${Date.now()}-${Math.floor(Math.random() * 10000)}-${index}`,
-    name,
-    cards,
-  };
-}
-
-function exportDecksPayload(targetDecks) {
-  return {
-    version: 1,
-    exportedAt: new Date().toISOString(),
-    decks: targetDecks.map((deck) => ({
-      name: deck.name,
-      cards: Array.isArray(deck.cards) ? deck.cards : [],
-    })),
-  };
-}
-
-function writeTransferJson(value) {
-  if (!deckTransferData) {
-    return;
-  }
-  deckTransferData.value = JSON.stringify(value, null, 2);
-}
-
-function exportSelectedDeck() {
-  const deck = getDeckById(selectedDeckId);
-  if (!deck) {
-    setDeckStatus("Selectionne un deck a exporter.");
-    return;
-  }
-  writeTransferJson(exportDecksPayload([deck]));
-  setDeckStatus(`Deck exporte: ${deck.name}`);
-}
-
-function exportAllDecks() {
-  if (!decks.length) {
-    setDeckStatus("Aucun deck a exporter.");
-    return;
-  }
-  writeTransferJson(exportDecksPayload(decks));
-  setDeckStatus(`${decks.length} deck(s) exporte(s).`);
-}
-
-function parseImportPayload(raw) {
-  if (!raw || !raw.trim()) {
-    return [];
-  }
-  const parsed = JSON.parse(raw);
-  return parseImportData(parsed);
-}
-
-function parseImportData(parsed) {
-  if (Array.isArray(parsed)) {
-    return parsed;
-  }
-  if (Array.isArray(parsed?.decks)) {
-    return parsed.decks;
-  }
-  if (parsed && Array.isArray(parsed.cards)) {
-    return [parsed];
-  }
-  return [];
-}
-
-function importRawDecks(rawDecks) {
-  if (!Array.isArray(rawDecks) || !rawDecks.length) {
-    return [];
-  }
-  const created = [];
-  rawDecks.forEach((rawDeck, idx) => {
-    const deck = createDeckFromImportedData(rawDeck, idx);
-    if (deck) {
-      decks.push(deck);
-      created.push(deck);
-    }
-  });
-  if (created.length) {
-    selectedDeckId = created[0].id;
-    saveDecksToStorage();
-    renderDeckUi();
-    renderCards(currentVisibleCards, currentSetName);
-  }
-  return created;
-}
-
-function importDecksFromJson() {
-  if (!deckTransferData) {
-    return;
-  }
-  let importedRaw = [];
-  try {
-    importedRaw = parseImportPayload(deckTransferData.value || "");
-  } catch {
-    setDeckStatus("JSON invalide.");
-    return;
-  }
-  if (!importedRaw.length) {
-    setDeckStatus("Aucun deck valide a importer.");
-    return;
-  }
-  const created = importRawDecks(importedRaw);
-
-  if (!created.length) {
-    setDeckStatus("Import vide apres validation.");
-    return;
-  }
-  setDeckStatus(`${created.length} deck(s) importe(s).`);
-}
-
-async function loadBaseDecksFromFolder() {
-  setDeckStatus("Chargement des decks de base...");
-  const indexResponse = await fetch(BASE_DECKS_INDEX_URL, { cache: "no-store" });
-  if (!indexResponse.ok) {
-    setDeckStatus("Dossier starter-decks introuvable.");
-    return;
-  }
-  const indexData = await indexResponse.json();
-  const files = Array.isArray(indexData?.files) ? indexData.files.filter(Boolean) : [];
-  if (!files.length) {
-    setDeckStatus("Aucun fichier deck configure dans starter-decks/index.json.");
-    return;
-  }
-
-  const allRawDecks = [];
-  for (let i = 0; i < files.length; i += 1) {
-    const file = files[i];
-    try {
-      const response = await fetch(`starter-decks/${file}`, { cache: "no-store" });
-      if (!response.ok) {
-        continue;
-      }
-      const parsed = await response.json();
-      allRawDecks.push(...parseImportData(parsed));
-    } catch {
-      // ignore one bad file and continue with others
-    }
-  }
-
-  if (!allRawDecks.length) {
-    setDeckStatus("Aucun deck valide charge depuis starter-decks.");
-    return;
-  }
-  const created = importRawDecks(allRawDecks);
-  if (!created.length) {
-    setDeckStatus("Decks de base invalides apres validation.");
-    return;
-  }
-  setDeckStatus(`${created.length} deck(s) de base charges.`);
 }
 
 function showCardsLoading(message) {
@@ -1074,30 +904,24 @@ deckSelect.addEventListener("change", () => {
 
 createDeckBtn.addEventListener("click", createOrRenameDeck);
 deleteDeckBtn.addEventListener("click", deleteSelectedDeck);
-if (loadBaseDecksBtn) {
-  loadBaseDecksBtn.addEventListener("click", async () => {
-    loadBaseDecksBtn.disabled = true;
+if (copyTransferBtn && deckTransferData) {
+  copyTransferBtn.addEventListener("click", async () => {
+    if (!deckTransferData.value.trim()) {
+      setDeckStatus("Aucun JSON a copier.");
+      return;
+    }
     try {
-      await loadBaseDecksFromFolder();
+      await navigator.clipboard.writeText(deckTransferData.value);
+      setDeckStatus("JSON copie dans le presse-papier.");
     } catch {
-      setDeckStatus("Erreur pendant le chargement des decks de base.");
-    } finally {
-      loadBaseDecksBtn.disabled = false;
+      setDeckStatus("Impossible de copier dans le presse-papier.");
     }
   });
-}
-if (exportSelectedDeckBtn) {
-  exportSelectedDeckBtn.addEventListener("click", exportSelectedDeck);
-}
-if (exportAllDecksBtn) {
-  exportAllDecksBtn.addEventListener("click", exportAllDecks);
-}
-if (importDecksBtn) {
-  importDecksBtn.addEventListener("click", importDecksFromJson);
 }
 if (clearTransferBtn && deckTransferData) {
   clearTransferBtn.addEventListener("click", () => {
     deckTransferData.value = "";
+    setDeckStatus("Zone JSON videe.");
   });
 }
 
