@@ -330,6 +330,42 @@ button:hover {
   padding: 0.42rem 0.5rem;
 }
 
+.starter-tools {
+  margin-top: 0.55rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+  padding: 0.5rem;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.starter-tools-title {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.starter-tools-actions {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.starter-tools label {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.deck-import-textarea {
+  width: 100%;
+  resize: vertical;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 0.45rem 0.55rem;
+  background: #fff;
+  font: inherit;
+}
+
 .energy-deck-builder {
   margin-top: 0.55rem;
   border: 1px solid var(--line);

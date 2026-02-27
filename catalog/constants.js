@@ -23,6 +23,11 @@ export const i18n = {
     "cards.cardsLoaded": "carte(s) chargee(s)",
     "cards.cardsShown": "carte(s) affichee(s)",
     "cards.result.noImage": "Image non disponible",
+    "deck.toolsTitle": "Decks de base",
+    "deck.addStarterDecks": "Ajouter decks de base",
+    "deck.importNameLabel": "Nom du deck a importer",
+    "deck.importIdsLabel": "IDs cartes (1 par ligne ou separes par virgule)",
+    "deck.importByIds": "Creer deck depuis IDs",
   },
   en: {
     "app.title": "Sim TCG - Standard Catalog",
@@ -48,6 +53,11 @@ export const i18n = {
     "cards.cardsLoaded": "card(s) loaded",
     "cards.cardsShown": "card(s) shown",
     "cards.result.noImage": "No image available",
+    "deck.toolsTitle": "Starter decks",
+    "deck.addStarterDecks": "Add starter decks",
+    "deck.importNameLabel": "Imported deck name",
+    "deck.importIdsLabel": "Card IDs (one per line or comma separated)",
+    "deck.importByIds": "Create deck from IDs",
   },
   es: {
     "app.title": "Sim TCG - Catalogo Standard",
@@ -73,6 +83,11 @@ export const i18n = {
     "cards.cardsLoaded": "carta(s) cargada(s)",
     "cards.cardsShown": "carta(s) mostrada(s)",
     "cards.result.noImage": "Imagen no disponible",
+    "deck.toolsTitle": "Mazos base",
+    "deck.addStarterDecks": "Agregar mazos base",
+    "deck.importNameLabel": "Nombre del mazo importado",
+    "deck.importIdsLabel": "IDs de cartas (una por linea o separadas por coma)",
+    "deck.importByIds": "Crear mazo desde IDs",
   },
 };
 

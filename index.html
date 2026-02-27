@@ -52,6 +52,17 @@
             <button id="createDeckBtn" type="button" class="primary">Creer / Renommer</button>
             <button id="deleteDeckBtn" type="button">Supprimer</button>
           </div>
+          <section class="starter-tools">
+            <p class="starter-tools-title" data-i18n="deck.toolsTitle">Decks de base</p>
+            <div class="starter-tools-actions">
+              <button id="addStarterDecksBtn" type="button" data-i18n="deck.addStarterDecks">Ajouter decks de base</button>
+            </div>
+            <label for="deckImportName" data-i18n="deck.importNameLabel">Nom du deck a importer</label>
+            <input id="deckImportName" class="deck-input" type="text" maxlength="48" placeholder="Deck importe">
+            <label for="deckImportIds" data-i18n="deck.importIdsLabel">IDs cartes (1 par ligne ou separes par virgule)</label>
+            <textarea id="deckImportIds" class="deck-import-textarea" rows="4" placeholder="sv1-1&#10;sv1-2&#10;sv1-3"></textarea>
+            <button id="importDeckByIdsBtn" type="button" data-i18n="deck.importByIds">Creer deck depuis IDs</button>
+          </section>
           <section class="energy-deck-builder">
             <p class="energy-deck-title">Energies de base</p>
             <div id="energyDeckControls" class="energy-deck-controls"></div>

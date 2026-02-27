@@ -43,6 +43,10 @@ const deckStatus = document.getElementById("deckStatus");
 const energyDeckControls = document.getElementById("energyDeckControls");
 const deckPreviewStatus = document.getElementById("deckPreviewStatus");
 const deckPreviewList = document.getElementById("deckPreviewList");
+const addStarterDecksBtn = document.getElementById("addStarterDecksBtn");
+const deckImportNameInput = document.getElementById("deckImportName");
+const deckImportIdsInput = document.getElementById("deckImportIds");
+const importDeckByIdsBtn = document.getElementById("importDeckByIdsBtn");
 const cardDetailsModal = document.getElementById("cardDetailsModal");
 const closeCardDetailsBtn = document.getElementById("closeCardDetailsBtn");
 const cardDetailsContent = document.getElementById("cardDetailsContent");
@@ -557,6 +561,187 @@ function removeCardFromSelectedDeck(cardId) {
   renderCards(currentVisibleCards, currentSetName);
 }
 
+function normalizeImportedCards(rawCards) {
+  if (!Array.isArray(rawCards)) {
+    return [];
+  }
+  const out = [];
+  const countById = new Map();
+  for (let i = 0; i < rawCards.length; i += 1) {
+    const normalized = toDeckCard(rawCards[i]);
+    const cardId = normalized.id;
+    const currentCount = countById.get(cardId) || 0;
+    if (!isBasicEnergyId(cardId) && currentCount >= MAX_CARD_COPIES) {
+      continue;
+    }
+    if (out.length >= MAX_DECK_SIZE) {
+      break;
+    }
+    out.push(normalized);
+    countById.set(cardId, currentCount + 1);
+  }
+  return out;
+}
+
+function makeDeckNameUnique(name) {
+  const base = (name || "").trim() || "Deck";
+  if (!decks.some((deck) => deck.name === base)) {
+    return base;
+  }
+  let n = 2;
+  while (decks.some((deck) => deck.name === `${base} ${n}`)) {
+    n += 1;
+  }
+  return `${base} ${n}`;
+}
+
+function upsertDeckByName(name, cards) {
+  const deckName = makeDeckNameUnique(name);
+  const newDeck = {
+    id: `deck-${Date.now()}-${Math.floor(Math.random() * 10000)}`,
+    name: deckName,
+    cards: normalizeImportedCards(cards),
+  };
+  decks.push(newDeck);
+  selectedDeckId = newDeck.id;
+  saveDecksToStorage();
+  renderDeckUi();
+  renderCards(currentVisibleCards, currentSetName);
+  return newDeck;
+}
+
+function pickRandomFromPool(pool, wanted, maxPerCard = 2) {
+  if (!Array.isArray(pool) || pool.length === 0 || wanted <= 0) {
+    return [];
+  }
+  const shuffled = [...pool];
+  for (let i = shuffled.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  const selected = [];
+  const countById = new Map();
+  let cursor = 0;
+  while (selected.length < wanted && cursor < shuffled.length * Math.max(1, maxPerCard)) {
+    const base = shuffled[cursor % shuffled.length];
+    const id = base.id || "";
+    const c = countById.get(id) || 0;
+    if (id && c < maxPerCard) {
+      selected.push(base);
+      countById.set(id, c + 1);
+    }
+    cursor += 1;
+  }
+  return selected;
+}
+
+function getEnergyTypeApiValue(typeKey) {
+  return typeDefinitions[typeKey]?.[currentLanguage]?.api || "";
+}
+
+async function fetchStarterPoolByCategory(filterKey) {
+  const categoryParam = getCategoryParamForFilter(filterKey);
+  const params = new URLSearchParams({ regulationMark: regulationMarks.join(",") });
+  if (categoryParam) {
+    params.set("category", categoryParam);
+  }
+  const response = await fetch(`https://api.tcgdex.net/v2/${currentLanguage}/cards?${params.toString()}`);
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}`);
+  }
+  const cards = await response.json();
+  return Array.isArray(cards) ? cards.filter((card) => Boolean(getImageUrl(card))) : [];
+}
+
+async function createStarterDecks() {
+  setDeckStatus("Creation des decks de base...");
+  const [pokemonPool, trainerPool] = await Promise.all([
+    fetchStarterPoolByCategory("pokemon"),
+    fetchStarterPoolByCategory("trainer"),
+  ]);
+
+  const starterSpecs = [
+    { name: "Starter Feu", typeKey: "fire" },
+    { name: "Starter Eau", typeKey: "water" },
+    { name: "Starter Plante", typeKey: "grass" },
+  ];
+
+  let created = 0;
+  starterSpecs.forEach((spec) => {
+    const typeApi = getEnergyTypeApiValue(spec.typeKey).toLowerCase();
+    const typedPokemon = pokemonPool.filter((card) =>
+      Array.isArray(card.types) && card.types.some((tpe) => String(tpe).toLowerCase() === typeApi),
+    );
+    const pokemonCards = pickRandomFromPool(typedPokemon.length >= 12 ? typedPokemon : pokemonPool, 18, 2);
+    const trainerCards = pickRandomFromPool(trainerPool, 14, 2);
+    const basicEnergy = [];
+    for (let i = 0; i < 28; i += 1) {
+      basicEnergy.push(buildBasicEnergyCard(spec.typeKey));
+    }
+    const cards = [...pokemonCards, ...trainerCards, ...basicEnergy];
+    const normalized = normalizeImportedCards(cards);
+    if (normalized.length < 60) {
+      for (let i = normalized.length; i < 60; i += 1) {
+        normalized.push(buildBasicEnergyCard(spec.typeKey));
+      }
+    }
+    upsertDeckByName(spec.name, normalized.slice(0, 60));
+    created += 1;
+  });
+
+  setDeckStatus(`${created} deck(s) de base ajoutes.`);
+}
+
+function parseCardIdsInput(raw) {
+  if (!raw) {
+    return [];
+  }
+  return raw
+    .split(/[\n,;]+/g)
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+async function fetchCardsByIds(ids) {
+  const requests = ids.map(async (id) => {
+    const response = await fetch(`https://api.tcgdex.net/v2/${currentLanguage}/cards/${encodeURIComponent(id)}`);
+    if (!response.ok) {
+      return null;
+    }
+    const card = await response.json();
+    return getImageUrl(card) ? card : null;
+  });
+  const cards = await Promise.all(requests);
+  return cards.filter(Boolean);
+}
+
+async function createDeckFromIds() {
+  const ids = parseCardIdsInput(deckImportIdsInput?.value || "");
+  if (ids.length === 0) {
+    setDeckStatus("Ajoute au moins un ID de carte.");
+    return;
+  }
+  const name = (deckImportNameInput?.value || "").trim() || "Deck importe";
+  setDeckStatus("Import du deck en cours...");
+  const fetched = await fetchCardsByIds(ids);
+  if (fetched.length === 0) {
+    setDeckStatus("Aucune carte valide trouvee avec ces IDs.");
+    return;
+  }
+  const cards = normalizeImportedCards(fetched.map((card) => toDeckCard(card)));
+  if (cards.length === 0) {
+    setDeckStatus("Import vide apres validation.");
+    return;
+  }
+  if (cards.length < 60) {
+    for (let i = cards.length; i < 60; i += 1) {
+      cards.push(buildBasicEnergyCard("colorless"));
+    }
+  }
+  const deck = upsertDeckByName(name, cards.slice(0, 60));
+  setDeckStatus(`Deck importe: ${deck.name} (${deck.cards.length}/60)`);
+}
+
 function showCardsLoading(message) {
   cardsLoadingText.textContent = message;
   cardsLoading.hidden = false;
@@ -876,6 +1061,30 @@ deckSelect.addEventListener("change", () => {
 
 createDeckBtn.addEventListener("click", createOrRenameDeck);
 deleteDeckBtn.addEventListener("click", deleteSelectedDeck);
+if (addStarterDecksBtn) {
+  addStarterDecksBtn.addEventListener("click", async () => {
+    addStarterDecksBtn.disabled = true;
+    try {
+      await createStarterDecks();
+    } catch {
+      setDeckStatus("Erreur lors de la creation des decks de base.");
+    } finally {
+      addStarterDecksBtn.disabled = false;
+    }
+  });
+}
+if (importDeckByIdsBtn) {
+  importDeckByIdsBtn.addEventListener("click", async () => {
+    importDeckByIdsBtn.disabled = true;
+    try {
+      await createDeckFromIds();
+    } catch {
+      setDeckStatus("Erreur lors de l'import du deck.");
+    } finally {
+      importDeckByIdsBtn.disabled = false;
+    }
+  });
+}
 
 energyDeckControls.addEventListener("click", (event) => {
   const target = event.target;
