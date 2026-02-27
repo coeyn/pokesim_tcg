@@ -324,10 +324,6 @@ function setDeckStatus(message) {
 
 function renderDeckSelect() {
   deckSelect.innerHTML = "";
-  const placeholder = document.createElement("option");
-  placeholder.value = "";
-  placeholder.textContent = "Aucun deck";
-  deckSelect.appendChild(placeholder);
 
   decks.forEach((deck) => {
     const option = document.createElement("option");
