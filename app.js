@@ -357,11 +357,42 @@ function syncDeckTransferPreview(deck) {
     }
     return;
   }
+  const countById = new Map();
+  const cards = Array.isArray(deck.cards) ? deck.cards : [];
+  cards.forEach((card) => {
+    const id = String(card?.id || "").trim();
+    if (!id) {
+      return;
+    }
+    const item = countById.get(id);
+    if (item) {
+      item.qty += 1;
+      return;
+    }
+    countById.set(id, {
+      id,
+      qty: 1,
+      name: card?.name || "",
+    });
+  });
+
+  const compactCards = Array.from(countById.values())
+    .sort((a, b) => b.qty - a.qty || a.id.localeCompare(b.id))
+    .map((item) => {
+      const compactItem = { id: item.id, qty: item.qty };
+      if (item.name) {
+        compactItem.name = item.name;
+      }
+      return compactItem;
+    });
+
   const payload = {
-    version: 1,
+    version: 2,
+    format: "simtcg-deck-compact",
     deck: {
       name: deck.name,
-      cards: Array.isArray(deck.cards) ? deck.cards : [],
+      totalCards: cards.length,
+      cards: compactCards,
     },
   };
   deckTransferData.value = JSON.stringify(payload, null, 2);
