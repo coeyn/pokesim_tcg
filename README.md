@@ -4,6 +4,8 @@ A lightweight web app to play Pokemon TCG on a phone/tablet during casual events
 
 The goal is not to enforce all game rules. Players manually manage actions (draw, discard, marker placement, board positioning), like on a physical table.
 
+Play online: https://coeyn.github.io/pokesim_tcg/
+
 ## Features
 
 - Card catalog powered by [TCGdex API](https://www.tcgdex.net/)
