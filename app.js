@@ -1433,24 +1433,15 @@ function createOrRenameDeck() {
     return;
   }
 
-  const existing = getDeckById(selectedDeckId);
-  if (existing) {
-    existing.name = name;
-    saveDecksToStorage();
-    setDeckStatus(`Deck renomme: ${name}`);
-    renderDeckUi();
-    return;
-  }
-
   const newDeck = {
-    id: `deck-${Date.now()}`,
-    name,
+    id: `deck-${Date.now()}-${Math.floor(Math.random() * 10000)}`,
+    name: makeDeckNameUnique(name),
     cards: [],
   };
   decks.push(newDeck);
   selectedDeckId = newDeck.id;
   saveDecksToStorage();
-  setDeckStatus(`Deck cree: ${name}`);
+  setDeckStatus(`Deck cree: ${newDeck.name}`);
   renderDeckUi();
   renderCards(currentVisibleCards, currentSetName);
 }
