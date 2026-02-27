@@ -40,6 +40,7 @@ const deckSelect = document.getElementById("deckSelect");
 const deckNameInput = document.getElementById("deckNameInput");
 const createDeckBtn = document.getElementById("createDeckBtn");
 const deleteDeckBtn = document.getElementById("deleteDeckBtn");
+const createDeckFromClipboardBtn = document.getElementById("createDeckFromClipboardBtn");
 const deckStatus = document.getElementById("deckStatus");
 const energyDeckControls = document.getElementById("energyDeckControls");
 const deckPreviewStatus = document.getElementById("deckPreviewStatus");
@@ -717,6 +718,211 @@ function removeCardFromSelectedDeck(cardId) {
   renderCards(currentVisibleCards, currentSetName);
 }
 
+function makeDeckNameUnique(name) {
+  const base = (name || "").trim() || "Deck";
+  if (!decks.some((deck) => deck.name === base)) {
+    return base;
+  }
+  let n = 2;
+  while (decks.some((deck) => deck.name === `${base} ${n}`)) {
+    n += 1;
+  }
+  return `${base} ${n}`;
+}
+
+function normalizeDeckCards(rawCards) {
+  if (!Array.isArray(rawCards)) {
+    return [];
+  }
+  const out = [];
+  const countById = new Map();
+  for (let i = 0; i < rawCards.length; i += 1) {
+    const normalized = toDeckCard(rawCards[i]);
+    const cardId = normalized.id;
+    const currentCount = countById.get(cardId) || 0;
+    if (!isBasicEnergyId(cardId) && currentCount >= MAX_CARD_COPIES) {
+      continue;
+    }
+    if (out.length >= MAX_DECK_SIZE) {
+      break;
+    }
+    out.push(normalized);
+    countById.set(cardId, currentCount + 1);
+  }
+  return out;
+}
+
+function addQtyToMap(map, id, qty) {
+  const cardId = String(id || "").trim();
+  const n = Math.round(Number(qty) || 0);
+  if (!cardId || n <= 0) {
+    return;
+  }
+  map[cardId] = (map[cardId] || 0) + n;
+}
+
+function parseClipboardDeckFromJsonObject(parsed) {
+  const sourceDeck = parsed?.deck || parsed?.decks?.[0] || parsed;
+  if (!sourceDeck || typeof sourceDeck !== "object") {
+    return null;
+  }
+  const qtyMap = {};
+  const cardsNode = sourceDeck.cards;
+  if (cardsNode && !Array.isArray(cardsNode) && typeof cardsNode === "object") {
+    Object.entries(cardsNode).forEach(([id, qty]) => addQtyToMap(qtyMap, id, qty));
+  } else if (Array.isArray(cardsNode)) {
+    cardsNode.forEach((item) => {
+      if (typeof item === "string") {
+        addQtyToMap(qtyMap, item, 1);
+        return;
+      }
+      if (item && typeof item === "object") {
+        addQtyToMap(qtyMap, item.id, "qty" in item ? item.qty : 1);
+      }
+    });
+  } else {
+    return null;
+  }
+  if (Object.keys(qtyMap).length === 0) {
+    return null;
+  }
+  return {
+    name: typeof sourceDeck.name === "string" ? sourceDeck.name : "Deck presse-papier",
+    qtyMap,
+  };
+}
+
+function parseClipboardDeckFromLines(rawText) {
+  const lines = String(rawText || "").split(/\r?\n/g);
+  const qtyMap = {};
+  lines.forEach((line) => {
+    const trimmed = line.trim();
+    if (!trimmed) {
+      return;
+    }
+    const m = trimmed.match(/^(\d+(?:[.,]\d+)?)\s*[xX]?\s+([A-Za-z0-9._:-]+)$/);
+    if (!m) {
+      return;
+    }
+    const qty = Number(m[1].replace(",", "."));
+    addQtyToMap(qtyMap, m[2], qty);
+  });
+  if (Object.keys(qtyMap).length === 0) {
+    return null;
+  }
+  return {
+    name: "Deck presse-papier",
+    qtyMap,
+  };
+}
+
+function parseClipboardDeck(rawText) {
+  const text = String(rawText || "").trim();
+  if (!text) {
+    return null;
+  }
+  try {
+    const parsed = JSON.parse(text);
+    const fromJson = parseClipboardDeckFromJsonObject(parsed);
+    if (fromJson) {
+      return fromJson;
+    }
+  } catch {
+    // fallback to plain text format
+  }
+  return parseClipboardDeckFromLines(text);
+}
+
+async function fetchDeckCardById(cardId) {
+  const response = await fetch(`https://api.tcgdex.net/v2/${currentLanguage}/cards/${encodeURIComponent(cardId)}`);
+  if (!response.ok) {
+    return null;
+  }
+  const card = await response.json();
+  if (!card || !card.id) {
+    return null;
+  }
+  return toDeckCard(card);
+}
+
+async function resolveDeckCardsFromQtyMap(qtyMap) {
+  const entries = Object.entries(qtyMap || {});
+  if (!entries.length) {
+    return [];
+  }
+  const uniqueIds = entries.map(([id]) => id).filter((id) => !isBasicEnergyId(id));
+  const fetchedById = new Map();
+  await Promise.all(
+    uniqueIds.map(async (id) => {
+      try {
+        const resolved = await fetchDeckCardById(id);
+        if (resolved) {
+          fetchedById.set(id, resolved);
+        }
+      } catch {
+        // keep fallback below
+      }
+    }),
+  );
+
+  const cards = [];
+  entries.forEach(([id, qty]) => {
+    const n = Math.max(0, Math.min(MAX_DECK_SIZE, Number(qty) || 0));
+    for (let i = 0; i < n; i += 1) {
+      if (isBasicEnergyId(id)) {
+        const typeKey = id.replace("basic-energy-", "");
+        if (basicEnergyTypeKeys.includes(typeKey)) {
+          cards.push(buildBasicEnergyCard(typeKey));
+        }
+        continue;
+      }
+      const resolved = fetchedById.get(id);
+      if (resolved) {
+        cards.push({ ...resolved });
+      } else {
+        cards.push({
+          id,
+          name: id,
+          image: null,
+          type: "",
+          category: "",
+          kind: "pokemon",
+        });
+      }
+    }
+  });
+  return normalizeDeckCards(cards);
+}
+
+async function createDeckFromClipboard() {
+  if (!navigator.clipboard || typeof navigator.clipboard.readText !== "function") {
+    setDeckStatus("Presse-papier non disponible.");
+    return;
+  }
+  const rawText = await navigator.clipboard.readText();
+  const parsed = parseClipboardDeck(rawText);
+  if (!parsed) {
+    setDeckStatus("Contenu presse-papier non reconnu.");
+    return;
+  }
+  const cards = await resolveDeckCardsFromQtyMap(parsed.qtyMap);
+  if (!cards.length) {
+    setDeckStatus("Aucune carte valide trouvee dans le presse-papier.");
+    return;
+  }
+  const newDeck = {
+    id: `deck-${Date.now()}-${Math.floor(Math.random() * 10000)}`,
+    name: makeDeckNameUnique(parsed.name || "Deck presse-papier"),
+    cards,
+  };
+  decks.push(newDeck);
+  selectedDeckId = newDeck.id;
+  saveDecksToStorage();
+  renderDeckUi();
+  renderCards(currentVisibleCards, currentSetName);
+  setDeckStatus(`Deck cree depuis presse-papier: ${newDeck.name} (${newDeck.cards.length}/60)`);
+}
+
 function showCardsLoading(message) {
   cardsLoadingText.textContent = message;
   cardsLoading.hidden = false;
@@ -1036,6 +1242,18 @@ deckSelect.addEventListener("change", () => {
 
 createDeckBtn.addEventListener("click", createOrRenameDeck);
 deleteDeckBtn.addEventListener("click", deleteSelectedDeck);
+if (createDeckFromClipboardBtn) {
+  createDeckFromClipboardBtn.addEventListener("click", async () => {
+    createDeckFromClipboardBtn.disabled = true;
+    try {
+      await createDeckFromClipboard();
+    } catch {
+      setDeckStatus("Erreur pendant la creation depuis presse-papier.");
+    } finally {
+      createDeckFromClipboardBtn.disabled = false;
+    }
+  });
+}
 if (copyTransferBtn && deckTransferData) {
   copyTransferBtn.addEventListener("click", async () => {
     if (!deckTransferData.value.trim()) {

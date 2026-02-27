@@ -330,6 +330,14 @@ button:hover {
   padding: 0.42rem 0.5rem;
 }
 
+.clipboard-create-btn {
+  width: 100%;
+  margin-top: 0.45rem;
+  padding: 0.72rem 0.8rem;
+  font-weight: 700;
+  font-size: 0.96rem;
+}
+
 .deck-transfer-tools {
   margin-top: 0.55rem;
   border: 1px solid var(--line);
