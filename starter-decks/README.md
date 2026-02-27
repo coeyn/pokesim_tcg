@@ -1,15 +1,10 @@
 # Starter Decks Folder
 
-Put your base deck JSON files in this folder, then list them in `starter-decks/index.json`.
+Put your base deck JSON files in this folder.
 
-## `index.json` format
+`starter-decks/index.json` is automatically generated on GitHub Pages deploy from all `*.json` files in this folder (except `index.json` itself).
 
-```json
-{
-  "version": 1,
-  "files": ["my-deck-a.json", "my-deck-b.json"]
-}
-```
+If you run locally without GitHub Actions, you can still keep an `index.json` manually.
 
 ## Deck file formats supported
 

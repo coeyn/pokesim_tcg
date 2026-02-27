@@ -21,9 +21,12 @@ let searchQuery = "";
 const MAX_DECK_SIZE = 60;
 const MAX_CARD_COPIES = 4;
 const STORAGE_DECKS_KEY = "simtcg.decks";
+const BASE_DECKS_INDEX_URL = "starter-decks/index.json";
+const BASE_DECK_ID_PREFIX = "base::";
 let decks = [];
 let selectedDeckId = "";
 let transferInputTimer = null;
+let baseDeckLoadPromise = null;
 
 const languageSelect = document.getElementById("language");
 const playLink = document.querySelector(".play-link");
@@ -752,6 +755,206 @@ function normalizeDeckCards(rawCards) {
   return out;
 }
 
+function uniqueById(items) {
+  const out = [];
+  const seen = new Set();
+  (Array.isArray(items) ? items : []).forEach((item) => {
+    const id = String(item || "").trim();
+    if (!id || seen.has(id)) {
+      return;
+    }
+    seen.add(id);
+    out.push(id);
+  });
+  return out;
+}
+
+async function fetchBaseDeckFileList() {
+  try {
+    const indexResponse = await fetch(BASE_DECKS_INDEX_URL, { cache: "no-store" });
+    if (indexResponse.ok) {
+      const indexData = await indexResponse.json();
+      const files = uniqueById(indexData?.files).filter((name) => name.endsWith(".json"));
+      if (files.length) {
+        return files;
+      }
+    }
+  } catch {
+    // fallback below
+  }
+
+  try {
+    const dirResponse = await fetch("starter-decks/", { cache: "no-store" });
+    if (!dirResponse.ok) {
+      return [];
+    }
+    const html = await dirResponse.text();
+    const matches = [...html.matchAll(/href=["']([^"']+\.json)["']/gi)].map((m) => m[1]);
+    const cleaned = matches
+      .map((entry) => entry.split("/").pop() || "")
+      .filter((name) => name && name !== "index.json");
+    return uniqueById(cleaned);
+  } catch {
+    return [];
+  }
+}
+
+function buildCardFromIdForBaseDeck(cardId) {
+  const id = String(cardId || "").trim();
+  if (!id) {
+    return null;
+  }
+  if (isBasicEnergyId(id)) {
+    const typeKey = id.replace("basic-energy-", "");
+    if (basicEnergyTypeKeys.includes(typeKey)) {
+      return buildBasicEnergyCard(typeKey);
+    }
+  }
+  return {
+    id,
+    name: id,
+    image: null,
+    type: "",
+    category: "",
+    kind: "pokemon",
+  };
+}
+
+function expandCardsNode(cardsNode) {
+  const cards = [];
+  if (!cardsNode) {
+    return cards;
+  }
+  if (!Array.isArray(cardsNode) && typeof cardsNode === "object") {
+    Object.entries(cardsNode).forEach(([id, qty]) => {
+      const n = Math.max(0, Math.min(MAX_DECK_SIZE, Number(qty) || 0));
+      for (let i = 0; i < n; i += 1) {
+        const card = buildCardFromIdForBaseDeck(id);
+        if (card) cards.push(card);
+      }
+    });
+    return cards;
+  }
+  if (Array.isArray(cardsNode)) {
+    cardsNode.forEach((item) => {
+      if (typeof item === "string") {
+        const card = buildCardFromIdForBaseDeck(item);
+        if (card) cards.push(card);
+        return;
+      }
+      if (!item || typeof item !== "object") {
+        return;
+      }
+      if ("id" in item && "qty" in item && !("image" in item) && !("category" in item)) {
+        const n = Math.max(0, Math.min(MAX_DECK_SIZE, Number(item.qty) || 0));
+        for (let i = 0; i < n; i += 1) {
+          const card = buildCardFromIdForBaseDeck(item.id);
+          if (card) cards.push(card);
+        }
+        return;
+      }
+      cards.push(toDeckCard(item));
+    });
+  }
+  return cards;
+}
+
+function parseDeckFileToDecks(fileData) {
+  if (!fileData) {
+    return [];
+  }
+  const asDeckObjects = Array.isArray(fileData)
+    ? fileData
+    : Array.isArray(fileData.decks)
+      ? fileData.decks
+      : [fileData.deck || fileData];
+
+  const parsed = [];
+  asDeckObjects.forEach((deckNode, idx) => {
+    if (!deckNode || typeof deckNode !== "object") {
+      return;
+    }
+    const cards = normalizeDeckCards(expandCardsNode(deckNode.cards));
+    if (!cards.length) {
+      return;
+    }
+    parsed.push({
+      name: String(deckNode.name || `Deck Base ${idx + 1}`).trim() || `Deck Base ${idx + 1}`,
+      cards,
+    });
+  });
+  return parsed;
+}
+
+async function loadBaseDeckDefinitions() {
+  const files = await fetchBaseDeckFileList();
+  if (!files.length) {
+    return [];
+  }
+  const allDecks = [];
+  for (let i = 0; i < files.length; i += 1) {
+    const file = files[i];
+    try {
+      const response = await fetch(`starter-decks/${file}`, { cache: "no-store" });
+      if (!response.ok) {
+        continue;
+      }
+      const fileData = await response.json();
+      const decksInFile = parseDeckFileToDecks(fileData);
+      decksInFile.forEach((deck, idx) => {
+        allDecks.push({
+          id: `${BASE_DECK_ID_PREFIX}${file}#${idx + 1}`,
+          name: deck.name,
+          cards: deck.cards,
+        });
+      });
+    } catch {
+      // skip malformed file
+    }
+  }
+  return allDecks;
+}
+
+async function applyBaseDecksToCurrentDecks() {
+  if (!baseDeckLoadPromise) {
+    baseDeckLoadPromise = loadBaseDeckDefinitions().catch(() => []);
+  }
+  const baseDecks = await baseDeckLoadPromise;
+  if (!baseDecks.length) {
+    return 0;
+  }
+
+  const merged = [];
+  const customDecks = decks.filter((deck) => !String(deck.id || "").startsWith(BASE_DECK_ID_PREFIX));
+  merged.push(...customDecks);
+
+  baseDecks.forEach((baseDeck) => {
+    const existing = decks.find((deck) => deck.id === baseDeck.id);
+    if (existing) {
+      merged.push({
+        ...existing,
+        name: baseDeck.name,
+        cards: baseDeck.cards,
+      });
+      return;
+    }
+    merged.push({
+      id: baseDeck.id,
+      name: baseDeck.name,
+      cards: baseDeck.cards,
+    });
+  });
+
+  decks = merged;
+  if (selectedDeckId && !decks.some((deck) => deck.id === selectedDeckId)) {
+    selectedDeckId = "";
+  }
+  saveDecksToStorage();
+  renderDeckUi();
+  renderCards(currentVisibleCards, currentSetName);
+  return baseDecks.length;
+}
+
 function addQtyToMap(map, id, qty) {
   const cardId = String(id || "").trim();
   const n = Math.round(Number(qty) || 0);
@@ -1398,6 +1601,7 @@ applyTranslations();
 loadDecksFromStorage();
 renderDeckUi();
 loadStandardSets();
+applyBaseDecksToCurrentDecks().catch(() => {});
 
 let currentCloudUser = null;
 async function initCloudSync() {
@@ -1419,6 +1623,7 @@ async function initCloudSync() {
       localStorage.setItem(STORAGE_DECKS_KEY, JSON.stringify(decks));
       renderDeckUi();
       renderCards(currentVisibleCards, currentSetName);
+      applyBaseDecksToCurrentDecks().catch(() => {});
     }
     if (typeof data.lang === "string" && i18n[data.lang]) {
       currentLanguage = data.lang;

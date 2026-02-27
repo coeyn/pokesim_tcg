@@ -27,6 +27,27 @@ jobs:
       - name: Setup Pages
         uses: actions/configure-pages@v5
 
+      - name: Generate starter deck index
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          folder = Path("starter-decks")
+          folder.mkdir(parents=True, exist_ok=True)
+          files = sorted(
+              p.name
+              for p in folder.glob("*.json")
+              if p.name != "index.json"
+          )
+          index_path = folder / "index.json"
+          index_path.write_text(
+              json.dumps({"version": 1, "files": files}, ensure_ascii=False, indent=2) + "\n",
+              encoding="utf-8",
+          )
+          print(f"starter-decks/index.json generated with {len(files)} file(s)")
+          PY
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
