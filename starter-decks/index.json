@@ -1,6 +1,9 @@
 {
   "version": 1,
   "files": [
-    "example-deck.json"
+    "gromago.json",
+    "dragapult_charizard.json",
+    "gardevoir.json",
+    "dracaufeu.json"
   ]
 }
