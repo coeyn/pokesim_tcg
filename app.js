@@ -338,6 +338,9 @@ function renderDeckSelect() {
 }
 
 function renderDeckUi() {
+  if (!selectedDeckId && decks.length > 0) {
+    selectedDeckId = decks[0].id;
+  }
   renderDeckSelect();
   const deck = getDeckById(selectedDeckId);
   deckNameInput.value = deck ? deck.name : "";
@@ -455,7 +458,7 @@ function expandCardMapToArray(cardMap, templateMap) {
 function applyTransferJsonToSelectedDeck(rawJson) {
   const targetDeck = getDeckById(selectedDeckId);
   if (!targetDeck) {
-    setDeckStatus("Selectionne un deck avant edition JSON.");
+    setDeckStatus("Aucun deck selectionne.");
     return false;
   }
   let parsed;
@@ -1059,7 +1062,10 @@ if (deckTransferData) {
       clearTimeout(transferInputTimer);
     }
     transferInputTimer = setTimeout(() => {
-      applyTransferJsonToSelectedDeck(deckTransferData.value || "");
+      const ok = applyTransferJsonToSelectedDeck(deckTransferData.value || "");
+      if (!ok && deckTransferData.value.trim()) {
+        setDeckStatus("JSON invalide ou incomplet.");
+      }
     }, 450);
   });
 }
