@@ -248,7 +248,7 @@ h2 {
   position: absolute;
   left: 0.9rem;
   right: calc(0.9rem + var(--controls-lane));
-  top: 0.9rem;
+  top: calc(30% + 1.3rem);
   bottom: 0.9rem;
   z-index: 15;
   --grid-cols: 30;
@@ -263,6 +263,52 @@ h2 {
   background-position: var(--grid-offset-x) var(--grid-offset-y), var(--grid-offset-x) var(--grid-offset-y);
   border: 1px dashed rgb(255 255 255 / 14%);
   border-radius: 10px;
+}
+
+.opponent-field {
+  position: absolute;
+  left: 0.9rem;
+  right: calc(0.9rem + var(--controls-lane));
+  top: 0.9rem;
+  height: 28%;
+  min-height: 130px;
+  z-index: 14;
+  border: 1px solid rgb(255 255 255 / 12%);
+  border-radius: 12px;
+  background: rgb(4 22 21 / 42%);
+  overflow: hidden;
+}
+
+.field-header {
+  position: absolute;
+  left: 0.6rem;
+  top: 0.45rem;
+  z-index: 2;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.opponent-board-layer,
+.opponent-marker-layer {
+  position: absolute;
+  left: 0.4rem;
+  right: 0.4rem;
+  top: 1.6rem;
+  bottom: 0.4rem;
+  border-radius: 10px;
+}
+
+.opponent-board-layer {
+  background:
+    linear-gradient(to right, rgb(255 255 255 / 6%) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(255 255 255 / 6%) 1px, transparent 1px);
+  background-size: var(--grid-cell) var(--grid-cell), var(--grid-cell) var(--grid-cell);
+  background-position: var(--grid-offset-x) var(--grid-offset-y), var(--grid-offset-x) var(--grid-offset-y);
+  border: 1px dashed rgb(255 255 255 / 10%);
+}
+
+.opponent-marker-layer {
+  pointer-events: none;
 }
 
 .table-controls {
@@ -492,8 +538,14 @@ body.fullscreen-mode .playmat {
 body.fullscreen-mode .board-cards-layer {
   left: 0.7rem;
   right: calc(0.7rem + var(--controls-lane));
-  top: 0.7rem;
+  top: calc(30% + 1.1rem);
   bottom: 0.7rem;
+}
+
+body.fullscreen-mode .opponent-field {
+  left: 0.7rem;
+  right: calc(0.7rem + var(--controls-lane));
+  top: 0.7rem;
 }
 
 body.fullscreen-mode .table-controls {

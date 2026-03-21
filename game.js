@@ -2,12 +2,12 @@ import { CATEGORY_BY_LANG, GRID, K, REG, SUPPORTED_LANGS, gameI18n, mTypes, name
 import { cacheOfflinePack, registerOfflineServiceWorker } from "./offline/offline.js";
 let firebaseApi = null;
 
-const e = { fs: document.getElementById('fullscreenBtn'), deckSel: document.getElementById('gameDeckSelect'), loadDeck: document.getElementById('loadDeckBtn'), reset: document.getElementById('resetGameBtn'), handT: document.getElementById('handToggleBtn'), showHand: document.getElementById('showHandBtn'), draw: document.getElementById('drawBtn'), setupPrizes: document.getElementById('setupPrizesBtn'), prizeDraw: document.getElementById('prizeDrawBtn'), viewDeck: document.getElementById('viewDeckBtn'), shuffle: document.getElementById('shuffleDeckBtn'), deckMenu: document.getElementById('deckMenuBtn'), deckZone: document.getElementById('deckZone'), deckCount: document.getElementById('deckCount'), handCards: document.getElementById('handCards'), discardCount: document.getElementById('discardCount'), discardZone: document.getElementById('discardZone'), discardTop: document.getElementById('discardTopCard'), board: document.getElementById('boardCardsLayer'), cardModal: document.getElementById('cardModal'), closeCard: document.getElementById('closeCardModalBtn'), cardContent: document.getElementById('cardModalContent'), disModal: document.getElementById('discardModal'), closeDis: document.getElementById('closeDiscardModalBtn'), disList: document.getElementById('discardList'), deckModal: document.getElementById('deckModal'), closeDeck: document.getElementById('closeDeckModalBtn'), deckList: document.getElementById('deckList'), deckClosePrompt: document.getElementById('deckClosePromptModal'), deckClosePromptShuffle: document.getElementById('deckClosePromptShuffleBtn'), deckClosePromptNoShuffle: document.getElementById('deckClosePromptNoShuffleBtn'), deckActions: document.getElementById('deckActionsModal'), closeDeckActions: document.getElementById('closeDeckActionsModalBtn'), hint: document.getElementById('dragActionHint'), toast: document.getElementById('actionToast'), playmat: document.querySelector('.playmat'), markers: document.getElementById('markerLayer'), bag: document.getElementById('markerBagBtn'), bagModal: document.getElementById('markerBagModal'), closeBag: document.getElementById('closeMarkerBagModalBtn'), catalog: document.getElementById('markerCatalog'), startScreen: document.getElementById('gameStartScreen'), startDeckSel: document.getElementById('startDeckSelect'), startBtn: document.getElementById('startGameBtn'), resumeBtn: document.getElementById('resumeGameBtn'), offlineBtn: document.getElementById('offlineCacheBtnGame'), createRoomBtn: document.getElementById('createRoomBtn'), joinRoomBtn: document.getElementById('joinRoomBtn'), leaveRoomBtn: document.getElementById('leaveRoomBtn'), roomIdInput: document.getElementById('roomIdInput'), roomStatusBadge: document.getElementById('roomStatusBadge'), roomHelpText: document.getElementById('roomHelpText'), roomCodeLabel: document.getElementById('roomCodeLabel'), roomLiveBadge: document.getElementById('roomLiveBadge') };
+const e = { fs: document.getElementById('fullscreenBtn'), deckSel: document.getElementById('gameDeckSelect'), loadDeck: document.getElementById('loadDeckBtn'), reset: document.getElementById('resetGameBtn'), handT: document.getElementById('handToggleBtn'), showHand: document.getElementById('showHandBtn'), draw: document.getElementById('drawBtn'), setupPrizes: document.getElementById('setupPrizesBtn'), prizeDraw: document.getElementById('prizeDrawBtn'), viewDeck: document.getElementById('viewDeckBtn'), shuffle: document.getElementById('shuffleDeckBtn'), deckMenu: document.getElementById('deckMenuBtn'), deckZone: document.getElementById('deckZone'), deckCount: document.getElementById('deckCount'), handCards: document.getElementById('handCards'), discardCount: document.getElementById('discardCount'), discardZone: document.getElementById('discardZone'), discardTop: document.getElementById('discardTopCard'), board: document.getElementById('boardCardsLayer'), oppField: document.getElementById('opponentField'), oppBoard: document.getElementById('opponentBoardCardsLayer'), oppMarkers: document.getElementById('opponentMarkerLayer'), cardModal: document.getElementById('cardModal'), closeCard: document.getElementById('closeCardModalBtn'), cardContent: document.getElementById('cardModalContent'), disModal: document.getElementById('discardModal'), closeDis: document.getElementById('closeDiscardModalBtn'), disList: document.getElementById('discardList'), deckModal: document.getElementById('deckModal'), closeDeck: document.getElementById('closeDeckModalBtn'), deckList: document.getElementById('deckList'), deckClosePrompt: document.getElementById('deckClosePromptModal'), deckClosePromptShuffle: document.getElementById('deckClosePromptShuffleBtn'), deckClosePromptNoShuffle: document.getElementById('deckClosePromptNoShuffleBtn'), deckActions: document.getElementById('deckActionsModal'), closeDeckActions: document.getElementById('closeDeckActionsModalBtn'), hint: document.getElementById('dragActionHint'), toast: document.getElementById('actionToast'), playmat: document.querySelector('.playmat'), markers: document.getElementById('markerLayer'), bag: document.getElementById('markerBagBtn'), bagModal: document.getElementById('markerBagModal'), closeBag: document.getElementById('closeMarkerBagModalBtn'), catalog: document.getElementById('markerCatalog'), startScreen: document.getElementById('gameStartScreen'), startDeckSel: document.getElementById('startDeckSelect'), startBtn: document.getElementById('startGameBtn'), resumeBtn: document.getElementById('resumeGameBtn'), offlineBtn: document.getElementById('offlineCacheBtnGame'), createRoomBtn: document.getElementById('createRoomBtn'), joinRoomBtn: document.getElementById('joinRoomBtn'), leaveRoomBtn: document.getElementById('leaveRoomBtn'), roomIdInput: document.getElementById('roomIdInput'), roomStatusBadge: document.getElementById('roomStatusBadge'), roomHelpText: document.getElementById('roomHelpText'), roomCodeLabel: document.getElementById('roomCodeLabel'), roomLiveBadge: document.getElementById('roomLiveBadge') };
 let LANG = 'fr';
 let S = { deck: [], hand: [], discard: [], placed: [], prizes: [], markers: [], nextPlaced: 1, nextMarker: 1, deckId: '', view: 'all', prizeDone: false, drag: null, mDrag: null, ghost: null, mGhost: null, hideEl: null, snap: null, snapPos: null, saveT: null, toastT: null, blockDis: 0, hydr: false };
 let currentCloudUser = null;
 let offlineReady = false;
-const MP = { roomId: '', hostUid: '', unsub: null, actionId: '', lastRemoteActionId: '', applyingRemote: false, ready: false, roomGameState: null };
+const MP = { roomId: '', hostUid: '', unsub: null, actionId: '', lastRemoteActionId: '', applyingRemote: false, ready: false, roomGameState: null, opponentUid: '', opponentState: null };
 
 const rnd = n => Math.floor(Math.random() * n); const sh = a => { for (let i = a.length - 1; i > 0; i--) { const j = rnd(i + 1);[a[i], a[j]] = [a[j], a[i]] } }; const inR = (x, y, r) => x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
 const inferKind = c => { const k = String(c?.kind || '').toLowerCase(); if (k === 'pokemon' || k === 'trainer' || k === 'energy') return k; const cat = String(c?.category || '').toLowerCase(); if (cat.includes('trainer') || cat.includes('dresseur') || cat.includes('entrenador')) return 'trainer'; if (cat.includes('energy') || cat.includes('energie') || cat.includes('energ')) return 'energy'; return 'pokemon' };
@@ -16,40 +16,31 @@ const handHidden = () => document.body.classList.contains('hand-hidden');
 const currentUid = () => currentCloudUser?.uid || '';
 const uidShort = uid => String(uid || '').slice(0, 6);
 const newActionId = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
-const emptyPrivateState = () => ({ deck: [], hand: [], discard: [], prizes: [], deckId: '', view: 'all', prizeDone: false, hidden: false });
-const getPrivatePlayerState = () => ({ deck: S.deck, hand: S.hand, discard: S.discard, prizes: S.prizes, deckId: S.deckId, view: S.view, prizeDone: S.prizeDone, hidden: handHidden() });
-const getSharedBoardState = () => ({ placed: S.placed, markers: S.markers, nextPlaced: S.nextPlaced, nextMarker: S.nextMarker });
-const getGameState = () => ({ ...getPrivatePlayerState(), ...getSharedBoardState() });
+const emptyPrivateState = () => ({ deck: [], hand: [], discard: [], prizes: [], placed: [], markers: [], nextPlaced: 1, nextMarker: 1, deckId: '', view: 'all', prizeDone: false, hidden: false });
+const getPrivatePlayerState = () => ({ deck: S.deck, hand: S.hand, discard: S.discard, prizes: S.prizes, placed: S.placed, markers: S.markers, nextPlaced: S.nextPlaced, nextMarker: S.nextMarker, deckId: S.deckId, view: S.view, prizeDone: S.prizeDone, hidden: handHidden() });
+const getGameState = () => ({ ...getPrivatePlayerState() });
 function normalizeRoomGameState(raw) {
   if (!raw || typeof raw !== 'object') return null;
-  if (raw.shared && raw.players && typeof raw.players === 'object') {
+  if (raw.players && typeof raw.players === 'object') {
     return {
-      version: 2,
-      shared: {
-        placed: Array.isArray(raw.shared.placed) ? raw.shared.placed : [],
-        markers: Array.isArray(raw.shared.markers) ? raw.shared.markers : [],
-        nextPlaced: Number(raw.shared.nextPlaced) || 1,
-        nextMarker: Number(raw.shared.nextMarker) || 1,
-      },
+      version: 3,
       players: raw.players,
     };
   }
   if (Array.isArray(raw.deck) && Array.isArray(raw.hand)) {
     const legacyUid = MP.hostUid || currentCloudUser?.uid || 'legacy';
     return {
-      version: 2,
-      shared: {
-        placed: Array.isArray(raw.placed) ? raw.placed : [],
-        markers: Array.isArray(raw.markers) ? raw.markers : [],
-        nextPlaced: Number(raw.nextPlaced) || 1,
-        nextMarker: Number(raw.nextMarker) || 1,
-      },
+      version: 3,
       players: {
         [legacyUid]: {
           deck: raw.deck,
           hand: raw.hand,
           discard: Array.isArray(raw.discard) ? raw.discard : [],
           prizes: Array.isArray(raw.prizes) ? raw.prizes : [],
+          placed: Array.isArray(raw.placed) ? raw.placed : [],
+          markers: Array.isArray(raw.markers) ? raw.markers : [],
+          nextPlaced: Number(raw.nextPlaced) || 1,
+          nextMarker: Number(raw.nextMarker) || 1,
           deckId: typeof raw.deckId === 'string' ? raw.deckId : '',
           view: typeof raw.view === 'string' ? raw.view : 'all',
           prizeDone: Boolean(raw.prizeDone),
@@ -65,8 +56,7 @@ function buildRoomGameState() {
   if (!uid) return null;
   const previousPlayers = MP.roomGameState && typeof MP.roomGameState.players === 'object' ? MP.roomGameState.players : {};
   return {
-    version: 2,
-    shared: getSharedBoardState(),
+    version: 3,
     players: {
       ...previousPlayers,
       [uid]: getPrivatePlayerState(),
@@ -100,17 +90,20 @@ function applyRoomStateSnapshot(roomState) {
   if (!normalized) return false;
   MP.roomGameState = normalized;
   const playerState = currentCloudUser?.uid ? normalized.players?.[currentCloudUser.uid] : null;
+  const otherEntry = Object.entries(normalized.players || {}).find(([uid]) => uid !== currentUid());
+  MP.opponentUid = otherEntry ? otherEntry[0] : '';
+  MP.opponentState = otherEntry ? otherEntry[1] : null;
   const fallbackHidden = handHidden();
   S.hydr = true;
-  S.placed = normalized.shared.placed;
-  S.markers = normalized.shared.markers;
-  S.nextPlaced = normalized.shared.nextPlaced;
-  S.nextMarker = normalized.shared.nextMarker;
   if (playerState) {
     S.deck = Array.isArray(playerState.deck) ? playerState.deck : [];
     S.hand = Array.isArray(playerState.hand) ? playerState.hand : [];
     S.discard = Array.isArray(playerState.discard) ? playerState.discard : [];
     S.prizes = Array.isArray(playerState.prizes) ? playerState.prizes : [];
+    S.placed = Array.isArray(playerState.placed) ? playerState.placed : [];
+    S.markers = Array.isArray(playerState.markers) ? playerState.markers : [];
+    S.nextPlaced = Number(playerState.nextPlaced) || 1;
+    S.nextMarker = Number(playerState.nextMarker) || 1;
     S.deckId = typeof playerState.deckId === 'string' ? playerState.deckId : '';
     S.view = typeof playerState.view === 'string' ? playerState.view : 'all';
     S.prizeDone = Boolean(playerState.prizeDone);
@@ -155,6 +148,7 @@ function updateMultiplayerUi() {
     e.roomLiveBadge.hidden = !MP.roomId;
     e.roomLiveBadge.textContent = MP.roomId ? `${gt(labelKey)} • ${gt('ui.roomCode')}: ${MP.roomId}` : '';
   }
+  if (e.oppField) e.oppField.hidden = !(MP.roomId && MP.opponentState);
 }
 const saveNow = () => {
   if (S.hydr) return;
@@ -231,21 +225,22 @@ const showStartScreen = () => { document.body.classList.add('pregame'); e.startS
 const hideStartScreen = () => { document.body.classList.remove('pregame'); e.startScreen.hidden = true };
 async function enterFullscreen() { try { if (!document.fullscreenElement) await document.documentElement.requestFullscreen() } catch { } updFS(); return Boolean(document.fullscreenElement) }
 function updFS() { if (document.fullscreenElement) { document.body.classList.add('fullscreen-mode'); e.fs.textContent = gt('ui.exitFullscreen') } else { document.body.classList.remove('fullscreen-mode'); e.fs.textContent = gt('ui.fullscreen') } }
-function relayout() { applyGridVars(); renderBoard(); sizeHand() }
+function relayout() { applyGridVars(); renderBoard(); renderOpponentBoard(); renderMarkers(); renderOpponentMarkers(); sizeHand() }
 function onFullscreenChange() { updFS(); if (!document.fullscreenElement) showStartScreen(); requestAnimationFrame(() => relayout()); setTimeout(() => relayout(), 120) }
 function updHandUI() { const h = handHidden(); e.handT.textContent = h ? gt('ui.showHand') : gt('ui.hideHand'); e.showHand.hidden = !h }
 function setHand(h) { document.body.classList.toggle('hand-hidden', h); updHandUI(); if (!h) requestAnimationFrame(sizeHand); saveSoon() }
 function sizeHand() { const w = e.handCards.clientWidth || 400; const cw = Math.max(82, Math.min(126, Math.floor(w * 0.145))); e.handCards.style.setProperty('--hand-card-width', `${cw}px`) }
-function gridMetrics() { const r = e.board.getBoundingClientRect(); const cell = Math.min(r.width / GRID.cols, r.height / GRID.rows); const gridW = cell * GRID.cols; const gridH = cell * GRID.rows; const offX = (r.width - gridW) / 2; const offY = (r.height - gridH) / 2; const cardRows = Math.round(GRID.cardCols * 7 / 5); const cardW = cell * GRID.cardCols; const cardH = cell * cardRows; return { r, cell, gridW, gridH, offX, offY, cardRows, cardW, cardH } }
-function applyGridVars() { const m = gridMetrics(); e.board.style.setProperty('--grid-cols', String(GRID.cols)); e.board.style.setProperty('--grid-rows', String(GRID.rows)); e.board.style.setProperty('--grid-cell', `${m.cell}px`); e.board.style.setProperty('--grid-offset-x', `${m.offX}px`); e.board.style.setProperty('--grid-offset-y', `${m.offY}px`); e.board.style.setProperty('--grid-card-width', `${m.cardW}px`) }
+function gridMetrics(layer = e.board) { const r = layer.getBoundingClientRect(); const cell = Math.min(r.width / GRID.cols, r.height / GRID.rows); const gridW = cell * GRID.cols; const gridH = cell * GRID.rows; const offX = (r.width - gridW) / 2; const offY = (r.height - gridH) / 2; const cardRows = Math.round(GRID.cardCols * 7 / 5); const cardW = cell * GRID.cardCols; const cardH = cell * cardRows; return { r, cell, gridW, gridH, offX, offY, cardRows, cardW, cardH } }
+function applyLayerGridVars(layer) { const m = gridMetrics(layer); layer.style.setProperty('--grid-cols', String(GRID.cols)); layer.style.setProperty('--grid-rows', String(GRID.rows)); layer.style.setProperty('--grid-cell', `${m.cell}px`); layer.style.setProperty('--grid-offset-x', `${m.offX}px`); layer.style.setProperty('--grid-offset-y', `${m.offY}px`); layer.style.setProperty('--grid-card-width', `${m.cardW}px`) }
+function applyGridVars() { applyLayerGridVars(e.board); if (e.oppBoard) applyLayerGridVars(e.oppBoard) }
 function boardCellToPixel(pos, metrics = gridMetrics()) {
   if (typeof pos?.gx === 'number' && typeof pos?.gy === 'number') {
     return { x: metrics.offX + pos.gx * metrics.cell, y: metrics.offY + pos.gy * metrics.cell };
   }
   return { x: Number(pos?.x) || 0, y: Number(pos?.y) || 0 };
 }
-function markerLayerMetrics() {
-  const rect = e.markers.getBoundingClientRect();
+function markerLayerMetrics(layer = e.markers) {
+  const rect = layer.getBoundingClientRect();
   return { rect, width: Math.max(1, rect.width), height: Math.max(1, rect.height) };
 }
 function markerPointToRelative(x, y) {
@@ -254,8 +249,8 @@ function markerPointToRelative(x, y) {
   const ry = Math.max(0, Math.min(1, (y - m.rect.top) / m.height));
   return { rx, ry };
 }
-function markerRelativeToPixel(marker) {
-  const m = markerLayerMetrics();
+function markerRelativeToPixel(marker, layer = e.markers) {
+  const m = markerLayerMetrics(layer);
   if (typeof marker?.rx === 'number' && typeof marker?.ry === 'number') {
     return { x: marker.rx * m.width, y: marker.ry * m.height };
   }
@@ -283,9 +278,11 @@ function counters() {
 }
 function renderHand() { e.handCards.innerHTML = ''; S.hand.forEach(c => { const el = cardFace(c, 'hand-card'); el.dataset.cardId = c.id; e.handCards.appendChild(el) }); sizeHand(); saveSoon() }
 function renderBoard() { const m = gridMetrics(); const maxPlacedId = S.placed.reduce((mx, p) => Math.max(mx, Number(p.id) || 0), 0); e.board.style.setProperty('--grid-card-width', `${m.cardW}px`); e.board.innerHTML = ''; S.snap = null; S.placed.forEach(p => { const el = cardFace(p.card, 'placed-card board-card'); const coords = boardCellToPixel(p, m); el.dataset.placedId = String(p.id); el.classList.toggle('locked-shared-item', !ownsSharedItem(p)); el.style.left = `${coords.x}px`; el.style.top = `${coords.y}px`; el.style.width = `${m.cardW}px`; const ageOrder = maxPlacedId - (Number(p.id) || 0); el.style.zIndex = String(layerRank(p.card) * 100000 + ageOrder); e.board.appendChild(el) }); saveSoon() }
+function renderOpponentBoard() { if (!e.oppBoard) return; const placed = Array.isArray(MP.opponentState?.placed) ? MP.opponentState.placed : []; const m = gridMetrics(e.oppBoard); const maxPlacedId = placed.reduce((mx, p) => Math.max(mx, Number(p.id) || 0), 0); e.oppBoard.style.setProperty('--grid-card-width', `${m.cardW}px`); e.oppBoard.innerHTML = ''; placed.forEach(p => { const el = cardFace(p.card, 'placed-card board-card locked-shared-item'); const coords = boardCellToPixel(p, m); el.style.left = `${coords.x}px`; el.style.top = `${coords.y}px`; el.style.width = `${m.cardW}px`; const ageOrder = maxPlacedId - (Number(p.id) || 0); el.style.zIndex = String(layerRank(p.card) * 100000 + ageOrder); e.oppBoard.appendChild(el) }) }
 function renderDiscardTop() { e.discardTop.innerHTML = ''; const c = S.discard[S.discard.length - 1]; if (c) e.discardTop.appendChild(cardFace(c, 'placed-card')); saveSoon() }
 function renderMarkers() { e.markers.innerHTML = ''; S.markers.forEach(m => { const d = mTypes[m.type] || ['?', '']; const p = markerRelativeToPixel(m); const b = document.createElement('button'); b.type = 'button'; b.className = `marker-item ${d[1]}`; b.textContent = d[0]; b.dataset.markerId = String(m.id); b.classList.toggle('locked-shared-item', !ownsSharedItem(m)); b.style.left = `${p.x}px`; b.style.top = `${p.y}px`; e.markers.appendChild(b) }); saveSoon() }
-function renderAll() { renderHand(); renderBoard(); renderDiscardTop(); renderMarkers(); counters(); }
+function renderOpponentMarkers() { if (!e.oppMarkers) return; const markers = Array.isArray(MP.opponentState?.markers) ? MP.opponentState.markers : []; e.oppMarkers.innerHTML = ''; markers.forEach(m => { const d = mTypes[m.type] || ['?', '']; const p = markerRelativeToPixel(m, e.oppMarkers); const b = document.createElement('div'); b.className = `marker-item ${d[1]} locked-shared-item`; b.textContent = d[0]; b.style.left = `${p.x}px`; b.style.top = `${p.y}px`; e.oppMarkers.appendChild(b) }) }
+function renderAll() { renderHand(); renderBoard(); renderOpponentBoard(); renderDiscardTop(); renderMarkers(); renderOpponentMarkers(); counters(); }
 
 function fakeDeck() { const a = []; for (let i = 0; i < 60; i++)a.push({ id: `F-${i + 1}`, name: `${names[rnd(names.length)]} ${rnd(100)}`, kind: 'pokemon' }); sh(a); return a }
 function fromSaved(cards) { return cards.map((c, i) => ({ id: `${c.id || 'S'}#${i + 1}`, name: c.name || `Carte ${i + 1}`, kind: inferKind(c), category: c.category || '', image: c.image || null })) }
@@ -411,7 +408,7 @@ function subscribeToRoom(roomId) {
       MP.applyingRemote = true;
       const ownPrivate = currentCloudUser?.uid ? MP.roomGameState.players?.[currentCloudUser.uid] : null;
       if (ownPrivate) {
-        localStorage.setItem(K.save, JSON.stringify({ ...ownPrivate, ...MP.roomGameState.shared }));
+        localStorage.setItem(K.save, JSON.stringify(ownPrivate));
       }
       applyRoomStateSnapshot(MP.roomGameState);
       MP.applyingRemote = false;
@@ -425,8 +422,7 @@ async function createRoom() {
   }
   const basePrivateState = hasSavedGame() ? JSON.parse(localStorage.getItem(K.save) || 'null') : getGameState();
   const gameState = {
-    version: 2,
-    shared: getSharedBoardState(),
+    version: 3,
     players: {
       [currentCloudUser.uid]: {
         ...emptyPrivateState(),
@@ -435,6 +431,10 @@ async function createRoom() {
           hand: Array.isArray(basePrivateState.hand) ? basePrivateState.hand : [],
           discard: Array.isArray(basePrivateState.discard) ? basePrivateState.discard : [],
           prizes: Array.isArray(basePrivateState.prizes) ? basePrivateState.prizes : [],
+          placed: Array.isArray(basePrivateState.placed) ? basePrivateState.placed : [],
+          markers: Array.isArray(basePrivateState.markers) ? basePrivateState.markers : [],
+          nextPlaced: Number(basePrivateState.nextPlaced) || 1,
+          nextMarker: Number(basePrivateState.nextMarker) || 1,
           deckId: typeof basePrivateState.deckId === 'string' ? basePrivateState.deckId : '',
           view: typeof basePrivateState.view === 'string' ? basePrivateState.view : 'all',
           prizeDone: Boolean(basePrivateState.prizeDone),
