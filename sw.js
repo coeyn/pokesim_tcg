@@ -1,5 +1,6 @@
-const APP_CACHE = "simtcg-app-v1";
-const RUNTIME_CACHE = "simtcg-runtime-v1";
+const APP_CACHE = "simtcg-app-v2";
+const RUNTIME_CACHE = "simtcg-runtime-v2";
+const MANUAL_CACHE = "simtcg-manual-v2";
 const APP_SHELL = [
   "./",
   "index.html",
@@ -33,7 +34,7 @@ self.addEventListener("activate", (event) => {
     const keys = await caches.keys();
     await Promise.all(
       keys
-        .filter((key) => ![APP_CACHE, RUNTIME_CACHE, "simtcg-manual-v1"].includes(key))
+        .filter((key) => ![APP_CACHE, RUNTIME_CACHE, MANUAL_CACHE].includes(key))
         .map((key) => caches.delete(key)),
     );
     await self.clients.claim();

@@ -1,4 +1,5 @@
 const SW_URL = "sw.js";
+const MANUAL_CACHE = "simtcg-manual-v2";
 const APP_SHELL_URLS = [
   "./",
   "index.html",
@@ -117,7 +118,7 @@ export async function cacheOfflinePack(extraUrls = []) {
   if (!("caches" in window)) {
     return { ok: false, count: 0 };
   }
-  const cache = await caches.open("simtcg-manual-v1");
+  const cache = await caches.open(MANUAL_CACHE);
   const allUrls = new Set([
     ...APP_SHELL_URLS.map((url) => toAbsolute(url)),
     ...collectDeckCardImageUrls(),
