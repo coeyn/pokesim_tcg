@@ -13,6 +13,8 @@ import {
   doc,
   getDoc,
   setDoc,
+  onSnapshot,
+  deleteField,
   serverTimestamp,
 } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 import { firebaseConfig } from "./config.js";
@@ -82,6 +84,25 @@ export async function signOutUser() {
 }
 
 const userDoc = (uid) => doc(db, "users", uid);
+const roomDoc = (roomId) => doc(db, "rooms", roomId);
+
+function randomRoomId(length = 6) {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let roomId = "";
+  for (let index = 0; index < length; index += 1) {
+    roomId += chars[Math.floor(Math.random() * chars.length)];
+  }
+  return roomId;
+}
+
+function userPresence(user) {
+  return {
+    uid: user.uid,
+    email: user.email || "",
+    displayName: user.displayName || user.email || user.uid,
+    joinedAt: new Date().toISOString(),
+  };
+}
 
 export async function loadUserData(uid) {
   if (!db || !uid) return null;
@@ -99,3 +120,71 @@ export async function saveUserData(uid, patch) {
   );
 }
 
+export async function createRoom(user, payload = {}) {
+  if (!db || !user?.uid) throw new Error("Firebase not initialized");
+  const roomId = randomRoomId();
+  const roomRef = roomDoc(roomId);
+  const player = userPresence(user);
+  await setDoc(roomRef, {
+    roomId,
+    hostUid: user.uid,
+    createdBy: user.uid,
+    status: "waiting",
+    players: { [user.uid]: player },
+    gameState: payload.gameState || null,
+    deckId: payload.deckId || "",
+    lang: payload.lang || "fr",
+    lastActionBy: user.uid,
+    lastActionId: payload.actionId || "",
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  });
+  return roomId;
+}
+
+export async function joinRoom(roomId, user) {
+  if (!db || !user?.uid) throw new Error("Firebase not initialized");
+  const trimmed = String(roomId || "").trim().toUpperCase();
+  if (!trimmed) throw new Error("Room ID required");
+  const ref = roomDoc(trimmed);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) throw new Error("Room not found");
+  await setDoc(
+    ref,
+    {
+      roomId: trimmed,
+      players: { [user.uid]: userPresence(user) },
+      updatedAt: serverTimestamp(),
+    },
+    { merge: true }
+  );
+  return trimmed;
+}
+
+export function subscribeRoom(roomId, handler) {
+  if (!db || !roomId) return () => {};
+  return onSnapshot(roomDoc(roomId), (snap) => {
+    handler(snap.exists() ? { id: snap.id, ...snap.data() } : null);
+  });
+}
+
+export async function updateRoom(roomId, patch) {
+  if (!db || !roomId) throw new Error("Firebase not initialized");
+  await setDoc(
+    roomDoc(roomId),
+    { ...patch, updatedAt: serverTimestamp() },
+    { merge: true }
+  );
+}
+
+export async function leaveRoom(roomId, user) {
+  if (!db || !roomId || !user?.uid) return;
+  await setDoc(
+    roomDoc(roomId),
+    {
+      players: { [user.uid]: deleteField() },
+      updatedAt: serverTimestamp(),
+    },
+    { merge: true }
+  );
+}

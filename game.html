@@ -29,6 +29,24 @@
     <div class="start-screen-panel">
       <h2 data-i18n-game="ui.startTitle">Mode Jeu</h2>
       <p data-i18n-game="ui.startSubtitle">Choisis un deck puis lance la partie.</p>
+      <section class="room-panel">
+        <div class="room-panel-head">
+          <h3 data-i18n-game="ui.multiTitle">Multijoueur</h3>
+          <span id="roomStatusBadge" class="room-status-badge" data-i18n-game="ui.multiSolo">Solo</span>
+        </div>
+        <p id="roomHelpText" class="room-help-text" data-i18n-game="ui.multiHelp">
+          Connecte-toi dans Profil pour creer une salle ou rejoindre une salle.
+        </p>
+        <div class="room-row">
+          <button id="createRoomBtn" class="fullscreen-btn" type="button" data-i18n-game="ui.createRoom">Creer une salle</button>
+          <input id="roomIdInput" class="game-select room-id-input" type="text" maxlength="12" placeholder="AB12CD" aria-label="Identifiant de salle">
+          <button id="joinRoomBtn" class="fullscreen-btn" type="button" data-i18n-game="ui.joinRoom">Rejoindre</button>
+        </div>
+        <div class="room-row room-row-secondary">
+          <span id="roomCodeLabel" class="room-code-label"></span>
+          <button id="leaveRoomBtn" class="fullscreen-btn room-leave-btn" type="button" hidden data-i18n-game="ui.leaveRoom">Quitter la salle</button>
+        </div>
+      </section>
       <label for="startDeckSelect" data-i18n-game="ui.deckLabel">Deck</label>
       <select id="startDeckSelect" class="game-select" aria-label="Choisir un deck pour la partie"></select>
       <div class="start-screen-actions">
@@ -43,6 +61,7 @@
 
   <main class="table-wrap">
     <section class="playmat">
+      <div id="roomLiveBadge" class="room-live-badge" hidden></div>
       <div id="boardCardsLayer" class="board-cards-layer"></div>
       <div id="markerLayer" class="marker-layer" aria-hidden="true"></div>
 

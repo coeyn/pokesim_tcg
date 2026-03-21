@@ -12,6 +12,7 @@ Play online: https://coeyn.github.io/pokesim_tcg/
 - Multi-language support (French, English, Spanish)
 - Deck builder (60 cards, max 4 copies per card, basic energy support)
 - Game mode for free placement of cards on a snapping grid
+- Multiplayer room MVP (create/join a room, shared board state via Firebase)
 - Draw pile / hand / discard interactions
 - Marker bag (burn, poison, damage markers)
 - User profile with Firebase Auth (email/password + Google)
@@ -76,6 +77,26 @@ export const firebaseConfig = {
 ```
 
 If Firebase is not configured, the app still works locally with `localStorage` fallback.
+
+## Multiplayer Setup Notes
+
+The game mode now includes a simple room system:
+
+- signed-in users can create a room
+- another signed-in user can join with the room code
+- the shared game state is stored in Firestore under the `rooms` collection
+
+For the MVP to work, your Firestore rules must allow authenticated users to read and write room documents.
+
+Example rule idea:
+
+```text
+match /rooms/{roomId} {
+  allow read, write: if request.auth != null;
+}
+```
+
+This is intentionally broad for a prototype. Tighten it before using the app in a less trusted environment.
 
 ## Offline Mode
 

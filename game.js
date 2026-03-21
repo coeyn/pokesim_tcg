@@ -2,22 +2,89 @@ import { CATEGORY_BY_LANG, GRID, K, REG, SUPPORTED_LANGS, gameI18n, mTypes, name
 import { cacheOfflinePack, registerOfflineServiceWorker } from "./offline/offline.js";
 let firebaseApi = null;
 
-const e = { fs: document.getElementById('fullscreenBtn'), deckSel: document.getElementById('gameDeckSelect'), loadDeck: document.getElementById('loadDeckBtn'), reset: document.getElementById('resetGameBtn'), handT: document.getElementById('handToggleBtn'), showHand: document.getElementById('showHandBtn'), draw: document.getElementById('drawBtn'), setupPrizes: document.getElementById('setupPrizesBtn'), prizeDraw: document.getElementById('prizeDrawBtn'), viewDeck: document.getElementById('viewDeckBtn'), shuffle: document.getElementById('shuffleDeckBtn'), deckMenu: document.getElementById('deckMenuBtn'), deckZone: document.getElementById('deckZone'), deckCount: document.getElementById('deckCount'), handCards: document.getElementById('handCards'), discardCount: document.getElementById('discardCount'), discardZone: document.getElementById('discardZone'), discardTop: document.getElementById('discardTopCard'), board: document.getElementById('boardCardsLayer'), cardModal: document.getElementById('cardModal'), closeCard: document.getElementById('closeCardModalBtn'), cardContent: document.getElementById('cardModalContent'), disModal: document.getElementById('discardModal'), closeDis: document.getElementById('closeDiscardModalBtn'), disList: document.getElementById('discardList'), deckModal: document.getElementById('deckModal'), closeDeck: document.getElementById('closeDeckModalBtn'), deckList: document.getElementById('deckList'), deckClosePrompt: document.getElementById('deckClosePromptModal'), deckClosePromptShuffle: document.getElementById('deckClosePromptShuffleBtn'), deckClosePromptNoShuffle: document.getElementById('deckClosePromptNoShuffleBtn'), deckActions: document.getElementById('deckActionsModal'), closeDeckActions: document.getElementById('closeDeckActionsModalBtn'), hint: document.getElementById('dragActionHint'), toast: document.getElementById('actionToast'), playmat: document.querySelector('.playmat'), markers: document.getElementById('markerLayer'), bag: document.getElementById('markerBagBtn'), bagModal: document.getElementById('markerBagModal'), closeBag: document.getElementById('closeMarkerBagModalBtn'), catalog: document.getElementById('markerCatalog'), startScreen: document.getElementById('gameStartScreen'), startDeckSel: document.getElementById('startDeckSelect'), startBtn: document.getElementById('startGameBtn'), resumeBtn: document.getElementById('resumeGameBtn'), offlineBtn: document.getElementById('offlineCacheBtnGame') };
+const e = { fs: document.getElementById('fullscreenBtn'), deckSel: document.getElementById('gameDeckSelect'), loadDeck: document.getElementById('loadDeckBtn'), reset: document.getElementById('resetGameBtn'), handT: document.getElementById('handToggleBtn'), showHand: document.getElementById('showHandBtn'), draw: document.getElementById('drawBtn'), setupPrizes: document.getElementById('setupPrizesBtn'), prizeDraw: document.getElementById('prizeDrawBtn'), viewDeck: document.getElementById('viewDeckBtn'), shuffle: document.getElementById('shuffleDeckBtn'), deckMenu: document.getElementById('deckMenuBtn'), deckZone: document.getElementById('deckZone'), deckCount: document.getElementById('deckCount'), handCards: document.getElementById('handCards'), discardCount: document.getElementById('discardCount'), discardZone: document.getElementById('discardZone'), discardTop: document.getElementById('discardTopCard'), board: document.getElementById('boardCardsLayer'), cardModal: document.getElementById('cardModal'), closeCard: document.getElementById('closeCardModalBtn'), cardContent: document.getElementById('cardModalContent'), disModal: document.getElementById('discardModal'), closeDis: document.getElementById('closeDiscardModalBtn'), disList: document.getElementById('discardList'), deckModal: document.getElementById('deckModal'), closeDeck: document.getElementById('closeDeckModalBtn'), deckList: document.getElementById('deckList'), deckClosePrompt: document.getElementById('deckClosePromptModal'), deckClosePromptShuffle: document.getElementById('deckClosePromptShuffleBtn'), deckClosePromptNoShuffle: document.getElementById('deckClosePromptNoShuffleBtn'), deckActions: document.getElementById('deckActionsModal'), closeDeckActions: document.getElementById('closeDeckActionsModalBtn'), hint: document.getElementById('dragActionHint'), toast: document.getElementById('actionToast'), playmat: document.querySelector('.playmat'), markers: document.getElementById('markerLayer'), bag: document.getElementById('markerBagBtn'), bagModal: document.getElementById('markerBagModal'), closeBag: document.getElementById('closeMarkerBagModalBtn'), catalog: document.getElementById('markerCatalog'), startScreen: document.getElementById('gameStartScreen'), startDeckSel: document.getElementById('startDeckSelect'), startBtn: document.getElementById('startGameBtn'), resumeBtn: document.getElementById('resumeGameBtn'), offlineBtn: document.getElementById('offlineCacheBtnGame'), createRoomBtn: document.getElementById('createRoomBtn'), joinRoomBtn: document.getElementById('joinRoomBtn'), leaveRoomBtn: document.getElementById('leaveRoomBtn'), roomIdInput: document.getElementById('roomIdInput'), roomStatusBadge: document.getElementById('roomStatusBadge'), roomHelpText: document.getElementById('roomHelpText'), roomCodeLabel: document.getElementById('roomCodeLabel'), roomLiveBadge: document.getElementById('roomLiveBadge') };
 let LANG = 'fr';
 let S = { deck: [], hand: [], discard: [], placed: [], prizes: [], markers: [], nextPlaced: 1, nextMarker: 1, deckId: '', view: 'all', prizeDone: false, drag: null, mDrag: null, ghost: null, mGhost: null, hideEl: null, snap: null, snapPos: null, saveT: null, toastT: null, blockDis: 0, hydr: false };
 let currentCloudUser = null;
 let offlineReady = false;
+const MP = { roomId: '', hostUid: '', unsub: null, actionId: '', lastRemoteActionId: '', applyingRemote: false, ready: false };
 
 const rnd = n => Math.floor(Math.random() * n); const sh = a => { for (let i = a.length - 1; i > 0; i--) { const j = rnd(i + 1);[a[i], a[j]] = [a[j], a[i]] } }; const inR = (x, y, r) => x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
 const inferKind = c => { const k = String(c?.kind || '').toLowerCase(); if (k === 'pokemon' || k === 'trainer' || k === 'energy') return k; const cat = String(c?.category || '').toLowerCase(); if (cat.includes('trainer') || cat.includes('dresseur') || cat.includes('entrenador')) return 'trainer'; if (cat.includes('energy') || cat.includes('energie') || cat.includes('energ')) return 'energy'; return 'pokemon' };
 const layerRank = c => { const k = inferKind(c); if (k === 'pokemon') return 3; if (k === 'trainer') return 2; if (k === 'energy') return 1; return 2 };
 const handHidden = () => document.body.classList.contains('hand-hidden');
+const uidShort = uid => String(uid || '').slice(0, 6);
+const newActionId = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+const getGameState = () => ({ deck: S.deck, hand: S.hand, discard: S.discard, placed: S.placed, prizes: S.prizes, markers: S.markers, nextPlaced: S.nextPlaced, nextMarker: S.nextMarker, deckId: S.deckId, view: S.view, prizeDone: S.prizeDone, hidden: handHidden() });
+function applyStateSnapshot(state, { silent = false } = {}) {
+  if (!state || !Array.isArray(state.deck) || !Array.isArray(state.hand) || !Array.isArray(state.discard) || !Array.isArray(state.placed) || !Array.isArray(state.markers)) return false;
+  S.hydr = true;
+  S.deck = state.deck;
+  S.hand = state.hand;
+  S.discard = state.discard;
+  S.placed = state.placed;
+  S.prizes = Array.isArray(state.prizes) ? state.prizes : [];
+  S.markers = state.markers;
+  S.nextPlaced = Number(state.nextPlaced) || 1;
+  S.nextMarker = Number(state.nextMarker) || 1;
+  S.deckId = typeof state.deckId === 'string' ? state.deckId : '';
+  S.view = typeof state.view === 'string' ? state.view : 'all';
+  S.prizeDone = Boolean(state.prizeDone);
+  renderDeckOptions(S.deckId);
+  syncStartDeckOptions();
+  renderAll();
+  setHand(Boolean(state.hidden));
+  S.hydr = false;
+  if (!silent) toast(gt('toast.restored'));
+  return true;
+}
+function getRoomRole() {
+  if (!MP.roomId) return 'solo';
+  return currentCloudUser && currentCloudUser.uid === MP.hostUid ? 'host' : 'guest';
+}
+function updateMultiplayerUi() {
+  const role = getRoomRole();
+  const firebaseReady = Boolean(firebaseApi && firebaseApi.isFirebaseEnabled && firebaseApi.isFirebaseEnabled());
+  const signedIn = Boolean(currentCloudUser);
+  const labelKey = role === 'host' ? 'ui.multiHost' : role === 'guest' ? 'ui.multiGuest' : firebaseReady ? 'ui.multiSolo' : 'ui.multiOffline';
+  if (e.roomStatusBadge) e.roomStatusBadge.textContent = gt(labelKey);
+  if (e.roomIdInput) {
+    e.roomIdInput.placeholder = gt('ui.roomPlaceholder');
+    e.roomIdInput.disabled = !firebaseReady || !signedIn || Boolean(MP.roomId);
+  }
+  if (e.createRoomBtn) e.createRoomBtn.disabled = !firebaseReady || !signedIn || Boolean(MP.roomId);
+  if (e.joinRoomBtn) e.joinRoomBtn.disabled = !firebaseReady || !signedIn || Boolean(MP.roomId);
+  if (e.leaveRoomBtn) e.leaveRoomBtn.hidden = !MP.roomId;
+  if (e.roomCodeLabel) e.roomCodeLabel.textContent = MP.roomId ? `${gt('ui.roomCode')}: ${MP.roomId}` : '';
+  if (e.roomHelpText) {
+    if (!firebaseReady) e.roomHelpText.textContent = gt('ui.multiHelp');
+    else if (!signedIn) e.roomHelpText.textContent = gt('toast.multiNeedAuth');
+    else if (MP.roomId) e.roomHelpText.textContent = `${gt(MP.hostUid ? 'ui.multiConnected' : 'ui.multiWaiting')} • ${uidShort(MP.hostUid || currentCloudUser.uid)}`;
+    else e.roomHelpText.textContent = gt('ui.multiHelp');
+  }
+  if (e.roomLiveBadge) {
+    e.roomLiveBadge.hidden = !MP.roomId;
+    e.roomLiveBadge.textContent = MP.roomId ? `${gt(labelKey)} • ${gt('ui.roomCode')}: ${MP.roomId}` : '';
+  }
+}
 const saveNow = () => {
   if (S.hydr) return;
-  const state = { deck: S.deck, hand: S.hand, discard: S.discard, placed: S.placed, prizes: S.prizes, markers: S.markers, nextPlaced: S.nextPlaced, nextMarker: S.nextMarker, deckId: S.deckId, view: S.view, prizeDone: S.prizeDone, hidden: handHidden() };
+  const state = getGameState();
   localStorage.setItem(K.save, JSON.stringify(state));
   if (currentCloudUser && firebaseApi) {
     firebaseApi.saveUserData(currentCloudUser.uid, { gameState: state }).catch(() => {});
+  }
+  if (MP.roomId && currentCloudUser && firebaseApi && !MP.applyingRemote) {
+    MP.actionId = newActionId();
+    firebaseApi.updateRoom(MP.roomId, {
+      gameState: state,
+      deckId: S.deckId,
+      lang: LANG,
+      hostUid: MP.hostUid || currentCloudUser.uid,
+      lastActionBy: currentCloudUser.uid,
+      lastActionId: MP.actionId,
+      status: 'active',
+    }).catch(() => {});
   }
 };
 const saveSoon = () => { if (S.hydr) return; clearTimeout(S.saveT); S.saveT = setTimeout(saveNow, 100) };
@@ -61,6 +128,7 @@ function applyGameTranslations() {
   if (e.offlineBtn) e.offlineBtn.textContent = offlineReady ? gt('ui.offlineReady') : gt('ui.offlineMode');
   updFS();
   updHandUI();
+  updateMultiplayerUi();
 }
 
 function renderDeckOptions(pref = '') { e.deckSel.innerHTML = ''; const o0 = document.createElement('option'); o0.value = ''; o0.textContent = gt('ui.deckAuto'); e.deckSel.appendChild(o0); let arr = []; try { arr = JSON.parse(localStorage.getItem(K.decks) || '[]') } catch { }; if (!Array.isArray(arr)) arr = []; arr.forEach(d => { const c = Array.isArray(d.cards) ? d.cards.length : 0; const o = document.createElement('option'); o.value = d.id || ''; o.textContent = `${d.name || 'Deck'} (${c}/60)`; o.disabled = c !== 60; e.deckSel.appendChild(o) }); if (pref && [...e.deckSel.options].some(o => o.value === pref && !o.disabled)) { e.deckSel.value = pref; S.deckId = pref } else { e.deckSel.value = ''; S.deckId = '' } }
@@ -119,7 +187,7 @@ async function apiDeck() {
 }
 function savedCards(id) { if (!id) return null; let arr = []; try { arr = JSON.parse(localStorage.getItem(K.decks) || '[]') } catch { }; if (!Array.isArray(arr)) return null; const d = arr.find(x => x.id === id); return d && Array.isArray(d.cards) ? d.cards : null }
 async function newGame(id = '') { S.hydr = true; S = { ...S, deck: [], hand: [], discard: [], placed: [], prizes: [], markers: [], nextPlaced: 1, nextMarker: 1, deckId: id || '', view: 'all', prizeDone: false, drag: null, mDrag: null, ghost: null, mGhost: null, hideEl: null, blockDis: 0 }; const sv = savedCards(S.deckId); if (Array.isArray(sv) && sv.length === 60) { localStorage.setItem(K.active, S.deckId); S.deck = fromSaved(sv); sh(S.deck); renderAll(); S.hydr = false; saveNow(); toast(gt('toast.deckLoaded')); return } localStorage.removeItem(K.active); toast(gt('toast.loadingCards')); try { S.deck = await apiDeck() } catch { S.deck = fakeDeck(); toast(gt('toast.apiFallback')) } renderAll(); S.hydr = false; saveNow() }
-function restore() { let st = null; try { st = JSON.parse(localStorage.getItem(K.save) || 'null') } catch { }; if (!st || !Array.isArray(st.deck) || !Array.isArray(st.hand) || !Array.isArray(st.discard) || !Array.isArray(st.placed) || !Array.isArray(st.markers)) return false; S.hydr = true; S.deck = st.deck; S.hand = st.hand; S.discard = st.discard; S.placed = st.placed; S.prizes = Array.isArray(st.prizes) ? st.prizes : []; S.markers = st.markers; S.nextPlaced = Number(st.nextPlaced) || 1; S.nextMarker = Number(st.nextMarker) || 1; S.deckId = typeof st.deckId === 'string' ? st.deckId : ''; S.view = typeof st.view === 'string' ? st.view : 'all'; S.prizeDone = Boolean(st.prizeDone); renderDeckOptions(S.deckId); renderAll(); setHand(Boolean(st.hidden)); S.hydr = false; toast(gt('toast.restored')); return true }
+function restore() { let st = null; try { st = JSON.parse(localStorage.getItem(K.save) || 'null') } catch { }; return applyStateSnapshot(st) }
 function init() { LANG = resolveLanguage(); document.documentElement.lang = LANG; applyGameTranslations(); const q = new URLSearchParams(location.search); renderDeckOptions(q.get('deck') || localStorage.getItem(K.active) || ''); syncStartDeckOptions(); showStartScreen() }
 
 function getOfflineGameImageUrls() {
@@ -149,6 +217,83 @@ async function initOfflineSupport() {
     }
     setTimeout(() => { e.offlineBtn.disabled = false; e.offlineBtn.textContent = offlineReady ? gt('ui.offlineReady') : gt('ui.offlineMode') }, 1200);
   });
+}
+function detachRoomSubscription() {
+  if (typeof MP.unsub === 'function') MP.unsub();
+  MP.unsub = null;
+}
+async function leaveCurrentRoom({ silent = false } = {}) {
+  if (!MP.roomId) return;
+  const roomId = MP.roomId;
+  detachRoomSubscription();
+  MP.roomId = '';
+  MP.hostUid = '';
+  MP.actionId = '';
+  MP.lastRemoteActionId = '';
+  if (firebaseApi && currentCloudUser) {
+    await firebaseApi.leaveRoom(roomId, currentCloudUser).catch(() => {});
+  }
+  updateMultiplayerUi();
+  if (!silent) toast(gt('toast.multiRoomLeft'));
+}
+function subscribeToRoom(roomId) {
+  detachRoomSubscription();
+  MP.unsub = firebaseApi.subscribeRoom(roomId, room => {
+    if (!room) {
+      leaveCurrentRoom({ silent: true }).catch(() => {});
+      return;
+    }
+    MP.roomId = room.id || room.roomId || roomId;
+    MP.hostUid = room.hostUid || '';
+    MP.lastRemoteActionId = room.lastActionId || '';
+    if (room.lang && SUPPORTED_LANGS.has(room.lang) && room.lang !== LANG) {
+      LANG = room.lang;
+      localStorage.setItem(K.lang, LANG);
+      applyGameTranslations();
+    } else {
+      updateMultiplayerUi();
+    }
+    if (room.gameState && room.lastActionId !== MP.actionId) {
+      MP.applyingRemote = true;
+      localStorage.setItem(K.save, JSON.stringify(room.gameState));
+      applyStateSnapshot(room.gameState, { silent: true });
+      MP.applyingRemote = false;
+    }
+  });
+}
+async function createRoom() {
+  if (!firebaseApi || !currentCloudUser) {
+    toast(gt('toast.multiNeedAuth'));
+    return;
+  }
+  const gameState = hasSavedGame() ? JSON.parse(localStorage.getItem(K.save) || 'null') : getGameState();
+  const roomId = await firebaseApi.createRoom(currentCloudUser, { gameState, deckId: S.deckId || '', lang: LANG, actionId: newActionId() });
+  MP.roomId = roomId;
+  MP.hostUid = currentCloudUser.uid;
+  MP.actionId = '';
+  subscribeToRoom(roomId);
+  updateMultiplayerUi();
+  if (e.roomIdInput) e.roomIdInput.value = roomId;
+  toast(gt('toast.multiRoomCreated'));
+}
+async function joinRoom() {
+  if (!firebaseApi || !currentCloudUser) {
+    toast(gt('toast.multiNeedAuth'));
+    return;
+  }
+  const roomId = String(e.roomIdInput?.value || '').trim().toUpperCase();
+  if (!roomId) return;
+  try {
+    const joinedId = await firebaseApi.joinRoom(roomId, currentCloudUser);
+    MP.roomId = joinedId;
+    MP.hostUid = '';
+    MP.actionId = '';
+    subscribeToRoom(joinedId);
+    updateMultiplayerUi();
+    toast(gt('toast.multiRoomJoined'));
+  } catch {
+    toast(gt('toast.multiRoomMissing'));
+  }
 }
 function dHint(t, x, y) { if (!t) { e.hint.hidden = true; return } e.hint.textContent = t; e.hint.hidden = false; const r = e.hint.getBoundingClientRect(); let l = x + 34, tp = y - r.height / 2; if (l + r.width > innerWidth - 10) l = x - r.width - 34; if (l < 10) l = 10; if (tp < 10) tp = 10; if (tp + r.height > innerHeight - 10) tp = innerHeight - r.height - 10; e.hint.style.left = `${l}px`; e.hint.style.top = `${tp}px`; e.hint.style.transform = 'none' }
 function ghost(c) { const g = cardFace(c, 'drag-ghost hand-card'); g.style.pointerEvents = 'none'; document.body.appendChild(g); return g }
@@ -226,6 +371,10 @@ function mStart(type, src, id, ev, el) { S.mDrag = { type, src, id }; if (src ==
 e.fs.addEventListener('click', async () => { try { if (!document.fullscreenElement) await document.documentElement.requestFullscreen(); else await document.exitFullscreen() } catch { } updFS() });
 e.deckSel.addEventListener('change', () => { S.deckId = e.deckSel.value || ''; if (e.startDeckSel.value !== e.deckSel.value) e.startDeckSel.value = e.deckSel.value });
 e.startDeckSel.addEventListener('change', () => { S.deckId = e.startDeckSel.value || ''; e.deckSel.value = S.deckId });
+if (e.roomIdInput) e.roomIdInput.addEventListener('input', () => { e.roomIdInput.value = e.roomIdInput.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 12) });
+if (e.createRoomBtn) e.createRoomBtn.addEventListener('click', () => { createRoom().catch(() => toast(gt('toast.multiNeedAuth'))) });
+if (e.joinRoomBtn) e.joinRoomBtn.addEventListener('click', () => { joinRoom().catch(() => toast(gt('toast.multiRoomMissing'))) });
+if (e.leaveRoomBtn) e.leaveRoomBtn.addEventListener('click', () => { leaveCurrentRoom().catch(() => {}) });
 e.startBtn.addEventListener('click', async () => { const fsOk = await enterFullscreen(); if (!fsOk) { toast(gt('toast.fsRequired')); showStartScreen(); return } S.deckId = e.startDeckSel.value || ''; e.deckSel.value = S.deckId; localStorage.removeItem(K.save); await newGame(S.deckId); hideStartScreen() });
 e.resumeBtn.addEventListener('click', async () => { const fsOk = await enterFullscreen(); if (!fsOk) { toast(gt('toast.fsRequired')); showStartScreen(); return } const ok = restore(); if (!ok) { toast(gt('toast.noSaved')); showStartScreen(); return } hideStartScreen() });
 e.loadDeck.addEventListener('click', async () => { S.deckId = e.deckSel.value || ''; localStorage.removeItem(K.save); await newGame(S.deckId) });
@@ -263,10 +412,15 @@ async function initCloudSync() {
     firebaseApi = null;
     return;
   }
+  updateMultiplayerUi();
   if (!firebaseApi.isFirebaseEnabled()) return;
   firebaseApi.onUserChanged(async user => {
     currentCloudUser = user || null;
-    if (!user) return;
+    updateMultiplayerUi();
+    if (!user) {
+      if (MP.roomId) await leaveCurrentRoom({ silent: true }).catch(() => {});
+      return;
+    }
     const data = await firebaseApi.loadUserData(user.uid).catch(() => null);
     if (!data) return;
     if (Array.isArray(data.decks)) {
@@ -282,6 +436,11 @@ async function initCloudSync() {
       LANG = data.lang;
       localStorage.setItem(K.lang, LANG);
       applyGameTranslations();
+    }
+    const queryRoomId = new URLSearchParams(location.search).get('room');
+    if (queryRoomId && !MP.roomId) {
+      if (e.roomIdInput) e.roomIdInput.value = String(queryRoomId).toUpperCase();
+      joinRoom().catch(() => {});
     }
   });
 }

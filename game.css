@@ -77,6 +77,78 @@ body.pregame .table-wrap {
   color: var(--muted);
 }
 
+.room-panel {
+  border: 1px solid rgb(255 255 255 / 12%);
+  border-radius: 12px;
+  background: rgb(5 23 22 / 28%);
+  padding: 0.75rem;
+  display: grid;
+  gap: 0.65rem;
+}
+
+.room-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.room-panel-head h3 {
+  margin: 0;
+  font-size: 0.98rem;
+}
+
+.room-status-badge,
+.room-live-badge {
+  border: 1px solid rgb(255 255 255 / 16%);
+  border-radius: 999px;
+  background: rgb(255 255 255 / 8%);
+  color: var(--ink);
+  padding: 0.22rem 0.58rem;
+  font-size: 0.75rem;
+  line-height: 1.2;
+}
+
+.room-help-text {
+  font-size: 0.9rem;
+  line-height: 1.35;
+}
+
+.room-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.room-row-secondary {
+  justify-content: space-between;
+}
+
+.room-id-input {
+  min-width: 0;
+  flex: 1 1 140px;
+  text-transform: uppercase;
+}
+
+.room-code-label {
+  color: var(--ink);
+  font-size: 0.88rem;
+  word-break: break-word;
+}
+
+.room-leave-btn {
+  background: #4d1b1b;
+}
+
+.room-live-badge {
+  position: absolute;
+  left: 0.9rem;
+  top: 0.9rem;
+  z-index: 32;
+  backdrop-filter: blur(6px);
+}
+
 .start-screen-actions {
   display: flex;
   flex-wrap: wrap;
@@ -1467,6 +1539,16 @@ body.hand-hidden .show-hand-btn {
   .topbar {
     flex-direction: column;
     align-items: start;
+  }
+
+  .room-row-secondary {
+    align-items: stretch;
+  }
+
+  .room-live-badge {
+    left: 0.5rem;
+    top: 0.5rem;
+    max-width: calc(100vw - 1rem);
   }
 
   .top-actions {
