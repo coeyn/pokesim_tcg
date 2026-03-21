@@ -112,6 +112,7 @@ export const gameI18n = {
     "toast.multiRoomLeft": "Salle quittee.",
     "toast.multiRoomMissing": "Salle introuvable.",
     "toast.multiSync": "Etat de salle synchronise.",
+    "toast.multiLockedObject": "Objet adverse verrouille.",
   },
   en: {
     "ui.deckAuto": "Auto deck (API)",
@@ -188,6 +189,7 @@ export const gameI18n = {
     "toast.multiRoomLeft": "Room left.",
     "toast.multiRoomMissing": "Room not found.",
     "toast.multiSync": "Room state synced.",
+    "toast.multiLockedObject": "Opponent object is locked.",
   },
   es: {
     "ui.deckAuto": "Mazo auto (API)",
@@ -264,5 +266,6 @@ export const gameI18n = {
     "toast.multiRoomLeft": "Sala cerrada.",
     "toast.multiRoomMissing": "Sala no encontrada.",
     "toast.multiSync": "Estado de sala sincronizado.",
+    "toast.multiLockedObject": "Objeto rival bloqueado.",
   },
 };

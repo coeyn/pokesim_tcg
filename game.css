@@ -291,6 +291,16 @@ h2 {
   opacity: 0.35;
 }
 
+.locked-shared-item {
+  outline: 2px solid rgb(255 255 255 / 18%);
+  outline-offset: 1px;
+}
+
+.board-card.locked-shared-item,
+.marker-item.locked-shared-item {
+  cursor: not-allowed;
+}
+
 .board-snap-preview {
   position: absolute;
   width: var(--grid-card-width, var(--play-card-width));
