@@ -7,7 +7,7 @@ let LANG = 'fr';
 let S = { deck: [], hand: [], discard: [], placed: [], prizes: [], markers: [], nextPlaced: 1, nextMarker: 1, deckId: '', view: 'all', prizeDone: false, drag: null, mDrag: null, ghost: null, mGhost: null, hideEl: null, snap: null, snapPos: null, saveT: null, toastT: null, blockDis: 0, hydr: false };
 let currentCloudUser = null;
 let offlineReady = false;
-const MP = { roomId: '', hostUid: '', unsub: null, actionId: '', lastRemoteActionId: '', applyingRemote: false, ready: false };
+const MP = { roomId: '', hostUid: '', unsub: null, actionId: '', lastRemoteActionId: '', applyingRemote: false, ready: false, roomGameState: null };
 
 const rnd = n => Math.floor(Math.random() * n); const sh = a => { for (let i = a.length - 1; i > 0; i--) { const j = rnd(i + 1);[a[i], a[j]] = [a[j], a[i]] } }; const inR = (x, y, r) => x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
 const inferKind = c => { const k = String(c?.kind || '').toLowerCase(); if (k === 'pokemon' || k === 'trainer' || k === 'energy') return k; const cat = String(c?.category || '').toLowerCase(); if (cat.includes('trainer') || cat.includes('dresseur') || cat.includes('entrenador')) return 'trainer'; if (cat.includes('energy') || cat.includes('energie') || cat.includes('energ')) return 'energy'; return 'pokemon' };
@@ -15,7 +15,63 @@ const layerRank = c => { const k = inferKind(c); if (k === 'pokemon') return 3; 
 const handHidden = () => document.body.classList.contains('hand-hidden');
 const uidShort = uid => String(uid || '').slice(0, 6);
 const newActionId = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
-const getGameState = () => ({ deck: S.deck, hand: S.hand, discard: S.discard, placed: S.placed, prizes: S.prizes, markers: S.markers, nextPlaced: S.nextPlaced, nextMarker: S.nextMarker, deckId: S.deckId, view: S.view, prizeDone: S.prizeDone, hidden: handHidden() });
+const emptyPrivateState = () => ({ deck: [], hand: [], discard: [], prizes: [], deckId: '', view: 'all', prizeDone: false, hidden: false });
+const getPrivatePlayerState = () => ({ deck: S.deck, hand: S.hand, discard: S.discard, prizes: S.prizes, deckId: S.deckId, view: S.view, prizeDone: S.prizeDone, hidden: handHidden() });
+const getSharedBoardState = () => ({ placed: S.placed, markers: S.markers, nextPlaced: S.nextPlaced, nextMarker: S.nextMarker });
+const getGameState = () => ({ ...getPrivatePlayerState(), ...getSharedBoardState() });
+function normalizeRoomGameState(raw) {
+  if (!raw || typeof raw !== 'object') return null;
+  if (raw.shared && raw.players && typeof raw.players === 'object') {
+    return {
+      version: 2,
+      shared: {
+        placed: Array.isArray(raw.shared.placed) ? raw.shared.placed : [],
+        markers: Array.isArray(raw.shared.markers) ? raw.shared.markers : [],
+        nextPlaced: Number(raw.shared.nextPlaced) || 1,
+        nextMarker: Number(raw.shared.nextMarker) || 1,
+      },
+      players: raw.players,
+    };
+  }
+  if (Array.isArray(raw.deck) && Array.isArray(raw.hand)) {
+    const legacyUid = MP.hostUid || currentCloudUser?.uid || 'legacy';
+    return {
+      version: 2,
+      shared: {
+        placed: Array.isArray(raw.placed) ? raw.placed : [],
+        markers: Array.isArray(raw.markers) ? raw.markers : [],
+        nextPlaced: Number(raw.nextPlaced) || 1,
+        nextMarker: Number(raw.nextMarker) || 1,
+      },
+      players: {
+        [legacyUid]: {
+          deck: raw.deck,
+          hand: raw.hand,
+          discard: Array.isArray(raw.discard) ? raw.discard : [],
+          prizes: Array.isArray(raw.prizes) ? raw.prizes : [],
+          deckId: typeof raw.deckId === 'string' ? raw.deckId : '',
+          view: typeof raw.view === 'string' ? raw.view : 'all',
+          prizeDone: Boolean(raw.prizeDone),
+          hidden: Boolean(raw.hidden),
+        },
+      },
+    };
+  }
+  return null;
+}
+function buildRoomGameState() {
+  const uid = currentCloudUser?.uid;
+  if (!uid) return null;
+  const previousPlayers = MP.roomGameState && typeof MP.roomGameState.players === 'object' ? MP.roomGameState.players : {};
+  return {
+    version: 2,
+    shared: getSharedBoardState(),
+    players: {
+      ...previousPlayers,
+      [uid]: getPrivatePlayerState(),
+    },
+  };
+}
 function applyStateSnapshot(state, { silent = false } = {}) {
   if (!state || !Array.isArray(state.deck) || !Array.isArray(state.hand) || !Array.isArray(state.discard) || !Array.isArray(state.placed) || !Array.isArray(state.markers)) return false;
   S.hydr = true;
@@ -36,6 +92,33 @@ function applyStateSnapshot(state, { silent = false } = {}) {
   setHand(Boolean(state.hidden));
   S.hydr = false;
   if (!silent) toast(gt('toast.restored'));
+  return true;
+}
+function applyRoomStateSnapshot(roomState) {
+  const normalized = normalizeRoomGameState(roomState);
+  if (!normalized) return false;
+  MP.roomGameState = normalized;
+  const playerState = currentCloudUser?.uid ? normalized.players?.[currentCloudUser.uid] : null;
+  const fallbackHidden = handHidden();
+  S.hydr = true;
+  S.placed = normalized.shared.placed;
+  S.markers = normalized.shared.markers;
+  S.nextPlaced = normalized.shared.nextPlaced;
+  S.nextMarker = normalized.shared.nextMarker;
+  if (playerState) {
+    S.deck = Array.isArray(playerState.deck) ? playerState.deck : [];
+    S.hand = Array.isArray(playerState.hand) ? playerState.hand : [];
+    S.discard = Array.isArray(playerState.discard) ? playerState.discard : [];
+    S.prizes = Array.isArray(playerState.prizes) ? playerState.prizes : [];
+    S.deckId = typeof playerState.deckId === 'string' ? playerState.deckId : '';
+    S.view = typeof playerState.view === 'string' ? playerState.view : 'all';
+    S.prizeDone = Boolean(playerState.prizeDone);
+  }
+  renderDeckOptions(S.deckId);
+  syncStartDeckOptions();
+  renderAll();
+  setHand(playerState ? Boolean(playerState.hidden) : fallbackHidden);
+  S.hydr = false;
   return true;
 }
 function getRoomRole() {
@@ -75,9 +158,12 @@ const saveNow = () => {
     firebaseApi.saveUserData(currentCloudUser.uid, { gameState: state }).catch(() => {});
   }
   if (MP.roomId && currentCloudUser && firebaseApi && !MP.applyingRemote) {
+    const roomGameState = buildRoomGameState();
+    if (!roomGameState) return;
+    MP.roomGameState = roomGameState;
     MP.actionId = newActionId();
     firebaseApi.updateRoom(MP.roomId, {
-      gameState: state,
+      gameState: roomGameState,
       deckId: S.deckId,
       lang: LANG,
       hostUid: MP.hostUid || currentCloudUser.uid,
@@ -186,7 +272,36 @@ async function apiDeck() {
   return Array.from({ length: 60 }, (_, i) => ({ ...refill[i % refill.length], id: `${refill[i % refill.length].id}-X${i + 1}` }));
 }
 function savedCards(id) { if (!id) return null; let arr = []; try { arr = JSON.parse(localStorage.getItem(K.decks) || '[]') } catch { }; if (!Array.isArray(arr)) return null; const d = arr.find(x => x.id === id); return d && Array.isArray(d.cards) ? d.cards : null }
-async function newGame(id = '') { S.hydr = true; S = { ...S, deck: [], hand: [], discard: [], placed: [], prizes: [], markers: [], nextPlaced: 1, nextMarker: 1, deckId: id || '', view: 'all', prizeDone: false, drag: null, mDrag: null, ghost: null, mGhost: null, hideEl: null, blockDis: 0 }; const sv = savedCards(S.deckId); if (Array.isArray(sv) && sv.length === 60) { localStorage.setItem(K.active, S.deckId); S.deck = fromSaved(sv); sh(S.deck); renderAll(); S.hydr = false; saveNow(); toast(gt('toast.deckLoaded')); return } localStorage.removeItem(K.active); toast(gt('toast.loadingCards')); try { S.deck = await apiDeck() } catch { S.deck = fakeDeck(); toast(gt('toast.apiFallback')) } renderAll(); S.hydr = false; saveNow() }
+async function newGame(id = '', options = {}) {
+  const resetShared = options.resetShared ?? !MP.roomId;
+  const shared = resetShared
+    ? { placed: [], markers: [], nextPlaced: 1, nextMarker: 1 }
+    : { placed: S.placed, markers: S.markers, nextPlaced: S.nextPlaced, nextMarker: S.nextMarker };
+  S.hydr = true;
+  S = { ...S, deck: [], hand: [], discard: [], placed: shared.placed, prizes: [], markers: shared.markers, nextPlaced: shared.nextPlaced, nextMarker: shared.nextMarker, deckId: id || '', view: 'all', prizeDone: false, drag: null, mDrag: null, ghost: null, mGhost: null, hideEl: null, blockDis: 0 };
+  const sv = savedCards(S.deckId);
+  if (Array.isArray(sv) && sv.length === 60) {
+    localStorage.setItem(K.active, S.deckId);
+    S.deck = fromSaved(sv);
+    sh(S.deck);
+    renderAll();
+    S.hydr = false;
+    saveNow();
+    toast(gt('toast.deckLoaded'));
+    return;
+  }
+  localStorage.removeItem(K.active);
+  toast(gt('toast.loadingCards'));
+  try {
+    S.deck = await apiDeck();
+  } catch {
+    S.deck = fakeDeck();
+    toast(gt('toast.apiFallback'));
+  }
+  renderAll();
+  S.hydr = false;
+  saveNow();
+}
 function restore() { let st = null; try { st = JSON.parse(localStorage.getItem(K.save) || 'null') } catch { }; return applyStateSnapshot(st) }
 function init() { LANG = resolveLanguage(); document.documentElement.lang = LANG; applyGameTranslations(); const q = new URLSearchParams(location.search); renderDeckOptions(q.get('deck') || localStorage.getItem(K.active) || ''); syncStartDeckOptions(); showStartScreen() }
 
@@ -230,6 +345,7 @@ async function leaveCurrentRoom({ silent = false } = {}) {
   MP.hostUid = '';
   MP.actionId = '';
   MP.lastRemoteActionId = '';
+  MP.roomGameState = null;
   if (firebaseApi && currentCloudUser) {
     await firebaseApi.leaveRoom(roomId, currentCloudUser).catch(() => {});
   }
@@ -246,6 +362,7 @@ function subscribeToRoom(roomId) {
     MP.roomId = room.id || room.roomId || roomId;
     MP.hostUid = room.hostUid || '';
     MP.lastRemoteActionId = room.lastActionId || '';
+    MP.roomGameState = normalizeRoomGameState(room.gameState);
     if (room.lang && SUPPORTED_LANGS.has(room.lang) && room.lang !== LANG) {
       LANG = room.lang;
       localStorage.setItem(K.lang, LANG);
@@ -253,10 +370,13 @@ function subscribeToRoom(roomId) {
     } else {
       updateMultiplayerUi();
     }
-    if (room.gameState && room.lastActionId !== MP.actionId) {
+    if (MP.roomGameState && room.lastActionId !== MP.actionId) {
       MP.applyingRemote = true;
-      localStorage.setItem(K.save, JSON.stringify(room.gameState));
-      applyStateSnapshot(room.gameState, { silent: true });
+      const ownPrivate = currentCloudUser?.uid ? MP.roomGameState.players?.[currentCloudUser.uid] : null;
+      if (ownPrivate) {
+        localStorage.setItem(K.save, JSON.stringify({ ...ownPrivate, ...MP.roomGameState.shared }));
+      }
+      applyRoomStateSnapshot(MP.roomGameState);
       MP.applyingRemote = false;
     }
   });
@@ -266,11 +386,31 @@ async function createRoom() {
     toast(gt('toast.multiNeedAuth'));
     return;
   }
-  const gameState = hasSavedGame() ? JSON.parse(localStorage.getItem(K.save) || 'null') : getGameState();
+  const basePrivateState = hasSavedGame() ? JSON.parse(localStorage.getItem(K.save) || 'null') : getGameState();
+  const gameState = {
+    version: 2,
+    shared: getSharedBoardState(),
+    players: {
+      [currentCloudUser.uid]: {
+        ...emptyPrivateState(),
+        ...(basePrivateState && typeof basePrivateState === 'object' ? {
+          deck: Array.isArray(basePrivateState.deck) ? basePrivateState.deck : [],
+          hand: Array.isArray(basePrivateState.hand) ? basePrivateState.hand : [],
+          discard: Array.isArray(basePrivateState.discard) ? basePrivateState.discard : [],
+          prizes: Array.isArray(basePrivateState.prizes) ? basePrivateState.prizes : [],
+          deckId: typeof basePrivateState.deckId === 'string' ? basePrivateState.deckId : '',
+          view: typeof basePrivateState.view === 'string' ? basePrivateState.view : 'all',
+          prizeDone: Boolean(basePrivateState.prizeDone),
+          hidden: Boolean(basePrivateState.hidden),
+        } : {}),
+      },
+    },
+  };
   const roomId = await firebaseApi.createRoom(currentCloudUser, { gameState, deckId: S.deckId || '', lang: LANG, actionId: newActionId() });
   MP.roomId = roomId;
   MP.hostUid = currentCloudUser.uid;
   MP.actionId = '';
+  MP.roomGameState = gameState;
   subscribeToRoom(roomId);
   updateMultiplayerUi();
   if (e.roomIdInput) e.roomIdInput.value = roomId;
