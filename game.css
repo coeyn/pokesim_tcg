@@ -154,8 +154,9 @@ body.pregame .table-wrap {
   border-radius: 999px;
   background: rgb(4 22 21 / 58%);
   color: var(--ink);
-  padding: 0.2rem 0.5rem;
-  font-size: 0.72rem;
+  padding: 0.16rem 0.44rem;
+  font-size: 0.7rem;
+  font-weight: 600;
   line-height: 1.2;
   backdrop-filter: blur(4px);
   white-space: nowrap;
@@ -163,6 +164,7 @@ body.pregame .table-wrap {
 
 .zone-counter-opponent {
   border-color: rgb(245 170 66 / 34%);
+  background: rgb(22 17 6 / 56%);
 }
 
 .start-screen-actions {
@@ -305,14 +307,6 @@ h2 {
   font-size: 0.8rem;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 0.4rem;
-}
-
-.field-counters {
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
 }
 
 .opponent-board-layer,
@@ -784,6 +778,10 @@ body.fullscreen-mode {
   gap: 0.3rem;
 }
 
+#statPlayerDeck {
+  border-color: rgb(95 180 165 / 45%);
+}
+
 .discard-label-outside {
   font-size: 0.86rem;
   color: var(--muted);
@@ -1041,6 +1039,10 @@ body.fullscreen-mode {
   gap: 0.6rem;
 }
 
+#statPlayerHand {
+  border-color: rgb(95 180 165 / 45%);
+}
+
 .hand-toggle-btn {
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -1051,6 +1053,20 @@ body.fullscreen-mode {
   font-size: 0.86rem;
   cursor: pointer;
   margin-left: auto;
+}
+
+.zone-counter-opponent-deck {
+  position: absolute;
+  right: 0.6rem;
+  top: 0.45rem;
+  z-index: 3;
+}
+
+.zone-counter-opponent-hand {
+  position: absolute;
+  left: 0.6rem;
+  top: 2rem;
+  z-index: 3;
 }
 
 .hand-row p {

@@ -210,10 +210,10 @@ function updateBattleStats() {
   const playerHand = Array.isArray(S.hand) ? S.hand.length : 0;
   const opponentDeck = Array.isArray(MP.opponentState?.deck) ? MP.opponentState.deck.length : null;
   const opponentHand = Array.isArray(MP.opponentState?.hand) ? MP.opponentState.hand.length : null;
-  if (e.statPlayerDeck) e.statPlayerDeck.textContent = `${gt('ui.deckZoneLabel')}: ${playerDeck}`;
-  if (e.statPlayerHand) e.statPlayerHand.textContent = `${gt('ui.handTitle')}: ${playerHand}`;
-  if (e.statOppDeck) e.statOppDeck.textContent = `${gt('ui.deckZoneLabel')}: ${opponentDeck === null ? '-' : opponentDeck}`;
-  if (e.statOppHand) e.statOppHand.textContent = `${gt('ui.handTitle')}: ${opponentHand === null ? '-' : opponentHand}`;
+  if (e.statPlayerDeck) e.statPlayerDeck.textContent = `${gt('ui.statPlayerDeck')}: ${playerDeck}`;
+  if (e.statPlayerHand) e.statPlayerHand.textContent = `${gt('ui.statPlayerHand')}: ${playerHand}`;
+  if (e.statOppDeck) e.statOppDeck.textContent = `${gt('ui.statOppDeck')}: ${opponentDeck === null ? '-' : opponentDeck}`;
+  if (e.statOppHand) e.statOppHand.textContent = `${gt('ui.statOppHand')}: ${opponentHand === null ? '-' : opponentHand}`;
 }
 function applyGameTranslations() {
   document.querySelectorAll('[data-i18n-game]').forEach(el => {
