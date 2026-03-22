@@ -313,7 +313,7 @@ h2 {
 
 .field-guide {
   position: absolute;
-  z-index: 16;
+  z-index: 12;
   pointer-events: none;
 }
 
@@ -349,7 +349,7 @@ h2 {
   left: 12%;
   right: 12%;
   top: 58%;
-  height: clamp(56px, 18%, 130px);
+  height: calc(var(--grid-card-width, var(--play-card-width)) * 7 / 5);
 }
 
 .opponent-guide {
@@ -372,7 +372,7 @@ h2 {
   left: 18%;
   right: 18%;
   top: 11%;
-  height: clamp(40px, 16%, 96px);
+  height: calc(var(--grid-card-width, var(--play-card-width)) * 7 / 5);
 }
 
 .table-controls {
