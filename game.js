@@ -3,6 +3,7 @@ import { cacheOfflinePack, registerOfflineServiceWorker } from "./offline/offlin
 let firebaseApi = null;
 
 const e = { fs: document.getElementById('fullscreenBtn'), deckSel: document.getElementById('gameDeckSelect'), loadDeck: document.getElementById('loadDeckBtn'), reset: document.getElementById('resetGameBtn'), handT: document.getElementById('handToggleBtn'), showHand: document.getElementById('showHandBtn'), draw: document.getElementById('drawBtn'), setupPrizes: document.getElementById('setupPrizesBtn'), prizeDraw: document.getElementById('prizeDrawBtn'), viewDeck: document.getElementById('viewDeckBtn'), shuffle: document.getElementById('shuffleDeckBtn'), deckMenu: document.getElementById('deckMenuBtn'), deckZone: document.getElementById('deckZone'), deckCount: document.getElementById('deckCount'), handCards: document.getElementById('handCards'), discardCount: document.getElementById('discardCount'), discardZone: document.getElementById('discardZone'), discardTop: document.getElementById('discardTopCard'), board: document.getElementById('boardCardsLayer'), oppField: document.getElementById('opponentField'), oppBoard: document.getElementById('opponentBoardCardsLayer'), oppMarkers: document.getElementById('opponentMarkerLayer'), statPlayerDeck: document.getElementById('statPlayerDeck'), statPlayerHand: document.getElementById('statPlayerHand'), statOppDeck: document.getElementById('statOppDeck'), statOppHand: document.getElementById('statOppHand'), cardModal: document.getElementById('cardModal'), closeCard: document.getElementById('closeCardModalBtn'), cardContent: document.getElementById('cardModalContent'), disModal: document.getElementById('discardModal'), closeDis: document.getElementById('closeDiscardModalBtn'), disList: document.getElementById('discardList'), deckModal: document.getElementById('deckModal'), closeDeck: document.getElementById('closeDeckModalBtn'), deckList: document.getElementById('deckList'), deckClosePrompt: document.getElementById('deckClosePromptModal'), deckClosePromptShuffle: document.getElementById('deckClosePromptShuffleBtn'), deckClosePromptNoShuffle: document.getElementById('deckClosePromptNoShuffleBtn'), deckActions: document.getElementById('deckActionsModal'), closeDeckActions: document.getElementById('closeDeckActionsModalBtn'), hint: document.getElementById('dragActionHint'), toast: document.getElementById('actionToast'), playmat: document.querySelector('.playmat'), markers: document.getElementById('markerLayer'), bag: document.getElementById('markerBagBtn'), bagModal: document.getElementById('markerBagModal'), closeBag: document.getElementById('closeMarkerBagModalBtn'), catalog: document.getElementById('markerCatalog'), startScreen: document.getElementById('gameStartScreen'), startDeckSel: document.getElementById('startDeckSelect'), startBtn: document.getElementById('startGameBtn'), resumeBtn: document.getElementById('resumeGameBtn'), offlineBtn: document.getElementById('offlineCacheBtnGame'), createRoomBtn: document.getElementById('createRoomBtn'), joinRoomBtn: document.getElementById('joinRoomBtn'), leaveRoomBtn: document.getElementById('leaveRoomBtn'), roomIdInput: document.getElementById('roomIdInput'), roomStatusBadge: document.getElementById('roomStatusBadge'), roomHelpText: document.getElementById('roomHelpText'), roomCodeLabel: document.getElementById('roomCodeLabel'), roomLiveBadge: document.getElementById('roomLiveBadge') };
+const PLAYER_CARD_EXTRA_COLS = 3;
 let LANG = 'fr';
 let S = { deck: [], hand: [], discard: [], placed: [], prizes: [], markers: [], nextPlaced: 1, nextMarker: 1, deckId: '', view: 'all', prizeDone: false, drag: null, mDrag: null, ghost: null, mGhost: null, hideEl: null, snap: null, snapPos: null, saveT: null, toastT: null, blockDis: 0, hydr: false };
 let currentCloudUser = null;
@@ -241,7 +242,19 @@ function onFullscreenChange() { updFS(); if (!document.fullscreenElement) showSt
 function updHandUI() { const h = handHidden(); e.handT.textContent = h ? gt('ui.showHand') : gt('ui.hideHand'); e.showHand.hidden = !h }
 function setHand(h) { document.body.classList.toggle('hand-hidden', h); updHandUI(); if (!h) requestAnimationFrame(sizeHand); saveSoon() }
 function sizeHand() { const w = e.handCards.clientWidth || 400; const cw = Math.max(82, Math.min(126, Math.floor(w * 0.145))); e.handCards.style.setProperty('--hand-card-width', `${cw}px`) }
-function gridMetrics(layer = e.board) { const r = layer.getBoundingClientRect(); const cell = Math.min(r.width / GRID.cols, r.height / GRID.rows); const gridW = cell * GRID.cols; const gridH = cell * GRID.rows; const offX = (r.width - gridW) / 2; const offY = (r.height - gridH) / 2; const cardRows = Math.round(GRID.cardCols * 7 / 5); const cardW = cell * GRID.cardCols; const cardH = cell * cardRows; return { r, cell, gridW, gridH, offX, offY, cardRows, cardW, cardH } }
+function gridMetrics(layer = e.board) {
+  const r = layer.getBoundingClientRect();
+  const cell = Math.min(r.width / GRID.cols, r.height / GRID.rows);
+  const gridW = cell * GRID.cols;
+  const gridH = cell * GRID.rows;
+  const offX = (r.width - gridW) / 2;
+  const offY = (r.height - gridH) / 2;
+  const cardCols = layer === e.board ? GRID.cardCols + PLAYER_CARD_EXTRA_COLS : GRID.cardCols;
+  const cardRows = Math.round(cardCols * 7 / 5);
+  const cardW = cell * cardCols;
+  const cardH = cell * cardRows;
+  return { r, cell, gridW, gridH, offX, offY, cardCols, cardRows, cardW, cardH };
+}
 function applyLayerGridVars(layer) { const m = gridMetrics(layer); layer.style.setProperty('--grid-cols', String(GRID.cols)); layer.style.setProperty('--grid-rows', String(GRID.rows)); layer.style.setProperty('--grid-cell', `${m.cell}px`); layer.style.setProperty('--grid-offset-x', `${m.offX}px`); layer.style.setProperty('--grid-offset-y', `${m.offY}px`); layer.style.setProperty('--grid-card-width', `${m.cardW}px`) }
 function applyGridVars() {
   applyLayerGridVars(e.board);
@@ -256,14 +269,6 @@ function boardCellToPixel(pos, metrics = gridMetrics()) {
     return { x: metrics.offX + pos.gx * metrics.cell, y: metrics.offY + pos.gy * metrics.cell };
   }
   return { x: Number(pos?.x) || 0, y: Number(pos?.y) || 0 };
-}
-function mirrorPlacedForOpponent(pos, metrics) {
-  if (typeof pos?.gx !== 'number' || typeof pos?.gy !== 'number') return pos;
-  return {
-    ...pos,
-    gx: GRID.cols - GRID.cardCols - pos.gx,
-    gy: GRID.rows - metrics.cardRows - pos.gy,
-  };
 }
 function markerLayerMetrics(layer = e.markers) {
   const rect = layer.getBoundingClientRect();
@@ -305,7 +310,25 @@ function counters() {
 }
 function renderHand() { e.handCards.innerHTML = ''; S.hand.forEach(c => { const el = cardFace(c, 'hand-card'); el.dataset.cardId = c.id; e.handCards.appendChild(el) }); sizeHand(); saveSoon() }
 function renderBoard() { const m = gridMetrics(); const maxPlacedId = S.placed.reduce((mx, p) => Math.max(mx, Number(p.id) || 0), 0); e.board.style.setProperty('--grid-card-width', `${m.cardW}px`); e.board.innerHTML = ''; S.snap = null; S.placed.forEach(p => { const el = cardFace(p.card, 'placed-card board-card'); const coords = boardCellToPixel(p, m); el.dataset.placedId = String(p.id); el.classList.toggle('locked-shared-item', !ownsSharedItem(p)); el.style.left = `${coords.x}px`; el.style.top = `${coords.y}px`; el.style.width = `${m.cardW}px`; const ageOrder = maxPlacedId - (Number(p.id) || 0); el.style.zIndex = String(layerRank(p.card) * 100000 + ageOrder); e.board.appendChild(el) }); saveSoon() }
-function renderOpponentBoard() { if (!e.oppBoard) return; const placed = Array.isArray(MP.opponentState?.placed) ? MP.opponentState.placed : []; const m = gridMetrics(e.oppBoard); const maxPlacedId = placed.reduce((mx, p) => Math.max(mx, Number(p.id) || 0), 0); e.oppBoard.style.setProperty('--grid-card-width', `${m.cardW}px`); e.oppBoard.innerHTML = ''; placed.forEach(p => { const el = cardFace(p.card, 'placed-card board-card locked-shared-item'); const mirrored = mirrorPlacedForOpponent(p, m); const coords = boardCellToPixel(mirrored, m); el.style.left = `${coords.x}px`; el.style.top = `${coords.y}px`; el.style.width = `${m.cardW}px`; const ageOrder = maxPlacedId - (Number(p.id) || 0); el.style.zIndex = String(layerRank(p.card) * 100000 + ageOrder); e.oppBoard.appendChild(el) }) }
+function renderOpponentBoard() {
+  if (!e.oppBoard) return;
+  const placed = Array.isArray(MP.opponentState?.placed) ? MP.opponentState.placed : [];
+  const m = gridMetrics(e.oppBoard);
+  const maxPlacedId = placed.reduce((mx, p) => Math.max(mx, Number(p.id) || 0), 0);
+  e.oppBoard.style.setProperty('--grid-card-width', `${m.cardW}px`);
+  e.oppBoard.innerHTML = '';
+  placed.forEach(p => {
+    const el = cardFace(p.card, 'placed-card board-card locked-shared-item');
+    const coords = boardCellToPixel(p, m);
+    el.dataset.opponentPlacedId = String(p.id);
+    el.style.left = `${coords.x}px`;
+    el.style.top = `${coords.y}px`;
+    el.style.width = `${m.cardW}px`;
+    const ageOrder = maxPlacedId - (Number(p.id) || 0);
+    el.style.zIndex = String(layerRank(p.card) * 100000 + ageOrder);
+    e.oppBoard.appendChild(el);
+  });
+}
 function renderDiscardTop() { e.discardTop.innerHTML = ''; const c = S.discard[S.discard.length - 1]; if (c) e.discardTop.appendChild(cardFace(c, 'placed-card')); saveSoon() }
 function renderMarkers() { e.markers.innerHTML = ''; S.markers.forEach(m => { const d = mTypes[m.type] || ['?', '']; const p = markerRelativeToPixel(m); const b = document.createElement('button'); b.type = 'button'; b.className = `marker-item ${d[1]}`; b.textContent = d[0]; b.dataset.markerId = String(m.id); b.classList.toggle('locked-shared-item', !ownsSharedItem(m)); b.style.left = `${p.x}px`; b.style.top = `${p.y}px`; e.markers.appendChild(b) }); saveSoon() }
 function renderOpponentMarkers() { if (!e.oppMarkers) return; const markers = Array.isArray(MP.opponentState?.markers) ? MP.opponentState.markers : []; e.oppMarkers.innerHTML = ''; markers.forEach(m => { const d = mTypes[m.type] || ['?', '']; const mirrored = (typeof m?.rx === 'number' && typeof m?.ry === 'number') ? { ...m, rx: 1 - m.rx, ry: 1 - m.ry } : m; const p = markerRelativeToPixel(mirrored, e.oppMarkers); const b = document.createElement('div'); b.className = `marker-item ${d[1]} locked-shared-item`; b.textContent = d[0]; b.style.left = `${p.x}px`; b.style.top = `${p.y}px`; e.oppMarkers.appendChild(b) }) }
@@ -522,6 +545,16 @@ function endDrag(ev) { if (!S.drag) return; const d = S.drag; let sharedChanged 
 function onMove(ev) { if (!S.drag) return; const ds = Math.hypot(ev.clientX - S.drag.sx, ev.clientY - S.drag.sy); if (!S.drag.drag && ds > 8) startDrag(S.drag); if (S.drag.drag) moveDrag(ev.clientX, ev.clientY) }
 function handDown(ev) { const t = ev.target; if (!(t instanceof HTMLElement) || ((ev.pointerType !== 'touch') && ev.button !== 0)) return; const c = t.closest('.hand-card'); if (!(c instanceof HTMLElement)) return; const id = c.dataset.cardId || ''; const card = S.hand.find(x => x.id === id); if (!card) return; S.drag = { src: 'hand', cardId: id, placedId: null, card, el: c, sx: ev.clientX, sy: ev.clientY, drag: false, ghost: null }; addEventListener('pointermove', onMove); addEventListener('pointerup', endDrag); addEventListener('pointercancel', endDrag) }
 function boardDown(ev) { const t = ev.target; if (!(t instanceof HTMLElement) || ((ev.pointerType !== 'touch') && ev.button !== 0)) return; const c = t.closest('.board-card'); if (!(c instanceof HTMLElement)) return; const id = Number(c.dataset.placedId || '-1'); const p = S.placed.find(x => x.id === id); if (!p) return; if (!ownsSharedItem(p)) { toast(gt('toast.multiLockedObject')); return; } S.drag = { src: 'board', cardId: p.card.id, placedId: id, card: p.card, el: c, sx: ev.clientX, sy: ev.clientY, drag: false, ghost: null }; addEventListener('pointermove', onMove); addEventListener('pointerup', endDrag); addEventListener('pointercancel', endDrag) }
+function opponentBoardClick(ev) {
+  const t = ev.target;
+  if (!(t instanceof HTMLElement)) return;
+  const c = t.closest('.board-card');
+  if (!(c instanceof HTMLElement)) return;
+  const id = Number(c.dataset.opponentPlacedId || '-1');
+  const placed = Array.isArray(MP.opponentState?.placed) ? MP.opponentState.placed : [];
+  const card = placed.find(x => Number(x.id) === id)?.card;
+  if (card) openCard(card);
+}
 function openCard(c) { e.cardContent.innerHTML = ''; e.cardContent.appendChild(cardFace(c, 'hand-card modal-card')); e.cardModal.hidden = false }
 function closeCard() { e.cardModal.hidden = true }
 function renderDisList() { e.disList.innerHTML = ''; if (!S.discard.length) { const p = document.createElement('p'); p.className = 'discard-list-empty'; p.textContent = gt('ui.emptyDiscard'); e.disList.appendChild(p); return } for (let i = S.discard.length - 1; i >= 0; i--) { const c = S.discard[i], el = cardFace(c, 'hand-card discard-list-card'); el.dataset.discardTakeBackId = c.id; el.appendChild(actionBtn('discard-item-btn', gt('ui.retrieve'), 'discardTakeBackId', c.id)); e.disList.appendChild(el) } }
@@ -592,6 +625,7 @@ e.viewDeck.addEventListener('click', ev => { ev.stopPropagation(); e.deckActions
 e.shuffle.addEventListener('click', ev => { ev.stopPropagation(); mix(); e.deckActions.hidden = true });
 e.deckMenu.addEventListener('click', ev => { ev.stopPropagation(); e.deckActions.hidden = false }); e.deckZone.addEventListener('click', () => e.deckActions.hidden = false);
 e.handCards.addEventListener('pointerdown', handDown); e.board.addEventListener('pointerdown', boardDown);
+if (e.oppBoard) e.oppBoard.addEventListener('click', opponentBoardClick);
 e.closeCard.addEventListener('click', closeCard); e.cardModal.addEventListener('click', ev => { const t = ev.target; if (t instanceof HTMLElement && t.dataset.closeModal === 'true') closeCard() });
 e.closeDis.addEventListener('click', closeDis); e.disModal.addEventListener('click', ev => { const t = ev.target; if (!(t instanceof HTMLElement)) return; if (t.dataset.closeDiscardModal === 'true') { closeDis(); return } const b = t.closest('.discard-item-btn'); if (b instanceof HTMLElement) { takeDis(b.dataset.discardTakeBackId || ''); return } const c = t.closest('.discard-list-card'); if (c instanceof HTMLElement) { const card = S.discard.find(x => x.id === (c.dataset.discardTakeBackId || '')); if (card) openCard(card) } });
 e.closeDeck.addEventListener('click', askCloseDeckWithShufflePrompt); e.closeDeckActions.addEventListener('click', () => e.deckActions.hidden = true);

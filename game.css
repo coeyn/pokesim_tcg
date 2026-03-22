@@ -419,7 +419,6 @@ h2 {
 }
 
 .opponent-board-layer .board-card {
-  transform: rotate(180deg);
   cursor: default;
 }
 
