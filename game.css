@@ -340,7 +340,7 @@ h2 {
   width: var(--grid-card-width, var(--play-card-width));
   aspect-ratio: 5 / 7;
   left: 50%;
-  top: 70%;
+  top: 30%;
   transform: translate(-50%, -50%);
   height: auto;
 }
@@ -348,7 +348,7 @@ h2 {
 .self-guide .guide-bench {
   left: 12%;
   right: 12%;
-  top: 24%;
+  top: 58%;
   height: clamp(56px, 18%, 130px);
 }
 
@@ -363,7 +363,7 @@ h2 {
   width: var(--grid-card-width, var(--play-card-width));
   aspect-ratio: 5 / 7;
   left: 50%;
-  top: 30%;
+  top: 70%;
   transform: translate(-50%, -50%);
   height: auto;
 }
@@ -371,7 +371,7 @@ h2 {
 .opponent-guide .guide-bench {
   left: 18%;
   right: 18%;
-  top: 58%;
+  top: 11%;
   height: clamp(40px, 16%, 96px);
 }
 
