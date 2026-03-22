@@ -243,7 +243,14 @@ function setHand(h) { document.body.classList.toggle('hand-hidden', h); updHandU
 function sizeHand() { const w = e.handCards.clientWidth || 400; const cw = Math.max(82, Math.min(126, Math.floor(w * 0.145))); e.handCards.style.setProperty('--hand-card-width', `${cw}px`) }
 function gridMetrics(layer = e.board) { const r = layer.getBoundingClientRect(); const cell = Math.min(r.width / GRID.cols, r.height / GRID.rows); const gridW = cell * GRID.cols; const gridH = cell * GRID.rows; const offX = (r.width - gridW) / 2; const offY = (r.height - gridH) / 2; const cardRows = Math.round(GRID.cardCols * 7 / 5); const cardW = cell * GRID.cardCols; const cardH = cell * cardRows; return { r, cell, gridW, gridH, offX, offY, cardRows, cardW, cardH } }
 function applyLayerGridVars(layer) { const m = gridMetrics(layer); layer.style.setProperty('--grid-cols', String(GRID.cols)); layer.style.setProperty('--grid-rows', String(GRID.rows)); layer.style.setProperty('--grid-cell', `${m.cell}px`); layer.style.setProperty('--grid-offset-x', `${m.offX}px`); layer.style.setProperty('--grid-offset-y', `${m.offY}px`); layer.style.setProperty('--grid-card-width', `${m.cardW}px`) }
-function applyGridVars() { applyLayerGridVars(e.board); if (e.oppBoard) applyLayerGridVars(e.oppBoard) }
+function applyGridVars() {
+  applyLayerGridVars(e.board);
+  if (e.oppBoard) {
+    applyLayerGridVars(e.oppBoard);
+    const oppMetrics = gridMetrics(e.oppBoard);
+    if (e.oppField) e.oppField.style.setProperty('--opponent-card-width', `${oppMetrics.cardW}px`);
+  }
+}
 function boardCellToPixel(pos, metrics = gridMetrics()) {
   if (typeof pos?.gx === 'number' && typeof pos?.gy === 'number') {
     return { x: metrics.offX + pos.gx * metrics.cell, y: metrics.offY + pos.gy * metrics.cell };
