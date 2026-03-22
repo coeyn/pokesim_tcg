@@ -149,29 +149,19 @@ body.pregame .table-wrap {
   backdrop-filter: blur(6px);
 }
 
-.battle-stats {
-  position: absolute;
-  left: 0.9rem;
-  right: calc(0.9rem + var(--controls-lane));
-  top: 2.7rem;
-  z-index: 32;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.32rem;
-}
-
-.battle-stat {
+.zone-counter {
   border: 1px solid rgb(255 255 255 / 16%);
   border-radius: 999px;
-  background: rgb(4 22 21 / 52%);
+  background: rgb(4 22 21 / 58%);
   color: var(--ink);
   padding: 0.2rem 0.5rem;
   font-size: 0.72rem;
   line-height: 1.2;
   backdrop-filter: blur(4px);
+  white-space: nowrap;
 }
 
-.battle-stat-opponent {
+.zone-counter-opponent {
   border-color: rgb(245 170 66 / 34%);
 }
 
@@ -308,10 +298,21 @@ h2 {
 .field-header {
   position: absolute;
   left: 0.6rem;
+  right: 0.6rem;
   top: 0.45rem;
   z-index: 2;
   color: var(--muted);
   font-size: 0.8rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+}
+
+.field-counters {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
 }
 
 .opponent-board-layer,
@@ -643,12 +644,6 @@ body.fullscreen-mode .opponent-field {
   top: 0.7rem;
 }
 
-body.fullscreen-mode .battle-stats {
-  left: 0.7rem;
-  right: calc(0.7rem + var(--controls-lane));
-  top: 2.5rem;
-}
-
 body.fullscreen-mode .self-guide {
   left: 0.7rem;
   right: calc(0.7rem + var(--controls-lane));
@@ -783,7 +778,10 @@ body.fullscreen-mode {
   font-size: 0.86rem;
   color: var(--muted);
   width: 100%;
-  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
 }
 
 .discard-label-outside {
@@ -1039,7 +1037,7 @@ body.fullscreen-mode {
 .hand-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: 0.6rem;
 }
 
@@ -1052,6 +1050,7 @@ body.fullscreen-mode {
   font: inherit;
   font-size: 0.86rem;
   cursor: pointer;
+  margin-left: auto;
 }
 
 .hand-row p {

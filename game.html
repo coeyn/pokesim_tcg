@@ -62,15 +62,13 @@
   <main class="table-wrap">
     <section class="playmat">
       <div id="roomLiveBadge" class="room-live-badge" hidden></div>
-      <div id="battleStats" class="battle-stats">
-        <span id="statPlayerDeck" class="battle-stat"></span>
-        <span id="statPlayerHand" class="battle-stat"></span>
-        <span id="statOppDeck" class="battle-stat battle-stat-opponent"></span>
-        <span id="statOppHand" class="battle-stat battle-stat-opponent"></span>
-      </div>
       <section id="opponentField" class="opponent-field" hidden>
         <div class="field-header">
           <span data-i18n-game="ui.opponentBoard">Plateau adverse</span>
+          <div class="field-counters">
+            <span id="statOppDeck" class="zone-counter zone-counter-opponent"></span>
+            <span id="statOppHand" class="zone-counter zone-counter-opponent"></span>
+          </div>
         </div>
         <div class="field-guide opponent-guide" aria-hidden="true">
           <div class="guide-active" data-i18n-game="ui.activeZone">Actif</div>
@@ -88,7 +86,10 @@
 
       <section class="table-controls">
         <section class="deck-wrap">
-          <div class="deck-label-outside" data-i18n-game="ui.deckZoneLabel">Pioche</div>
+          <div class="deck-label-outside">
+            <span data-i18n-game="ui.deckZoneLabel">Pioche</span>
+            <span id="statPlayerDeck" class="zone-counter"></span>
+          </div>
           <article id="deckZone" class="zone small card-zone deck-zone" data-zone="deck">
             <button id="deckMenuBtn" class="deck-main-btn" type="button" aria-label="Ouvrir les actions de pioche" data-i18n-game="ui.deckZoneLabel">Pioche</button>
             <span id="deckCount" class="sr-only" aria-hidden="true">60</span>
@@ -115,6 +116,7 @@
       <section class="hand-row" data-zone="hand">
         <div class="hand-header">
           <h2 data-i18n-game="ui.handTitle">Main</h2>
+          <span id="statPlayerHand" class="zone-counter"></span>
           <button id="handToggleBtn" class="hand-toggle-btn" type="button" data-i18n-game="ui.hideHand">Masquer la main</button>
         </div>
         <div id="handCards" class="hand-cards"></div>
