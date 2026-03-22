@@ -384,7 +384,7 @@ h2 {
   width: var(--opponent-card-width, var(--grid-card-width, var(--play-card-width)));
   aspect-ratio: 5 / 7;
   left: 50%;
-  top: 70%;
+  top: 30%;
   transform: translate(-50%, -50%);
   height: auto;
 }
@@ -392,7 +392,7 @@ h2 {
 .opponent-guide .guide-bench {
   left: 18%;
   right: 18%;
-  top: 11%;
+  top: 58%;
   height: calc(var(--opponent-card-width, var(--grid-card-width, var(--play-card-width))) * 7 / 5);
 }
 
