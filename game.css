@@ -311,6 +311,66 @@ h2 {
   pointer-events: none;
 }
 
+.field-guide {
+  position: absolute;
+  z-index: 16;
+  pointer-events: none;
+}
+
+.field-guide .guide-active,
+.field-guide .guide-bench {
+  position: absolute;
+  border: 1px dashed rgb(255 255 255 / 26%);
+  border-radius: 10px;
+  color: rgb(255 255 255 / 72%);
+  font-size: 0.72rem;
+  display: grid;
+  place-items: center;
+  backdrop-filter: blur(1px);
+}
+
+.self-guide {
+  left: 0.9rem;
+  right: calc(0.9rem + var(--controls-lane));
+  top: calc(30% + 1.3rem);
+  bottom: 0.9rem;
+}
+
+.self-guide .guide-active {
+  left: 41%;
+  width: 18%;
+  bottom: 7%;
+  height: 40%;
+}
+
+.self-guide .guide-bench {
+  left: 13%;
+  right: 13%;
+  bottom: 52%;
+  height: 22%;
+}
+
+.opponent-guide {
+  left: 0.4rem;
+  right: 0.4rem;
+  top: 1.6rem;
+  bottom: 0.4rem;
+}
+
+.opponent-guide .guide-active {
+  left: 41%;
+  width: 18%;
+  top: 7%;
+  height: 40%;
+}
+
+.opponent-guide .guide-bench {
+  left: 13%;
+  right: 13%;
+  top: 52%;
+  height: 22%;
+}
+
 .table-controls {
   position: absolute;
   top: 0.9rem;
@@ -331,6 +391,11 @@ h2 {
   cursor: grab;
   border-radius: 11px;
   overflow: hidden;
+}
+
+.opponent-board-layer .board-card {
+  transform: rotate(180deg);
+  cursor: default;
 }
 
 .board-card.drag-source {
@@ -546,6 +611,13 @@ body.fullscreen-mode .opponent-field {
   left: 0.7rem;
   right: calc(0.7rem + var(--controls-lane));
   top: 0.7rem;
+}
+
+body.fullscreen-mode .self-guide {
+  left: 0.7rem;
+  right: calc(0.7rem + var(--controls-lane));
+  top: calc(30% + 1.1rem);
+  bottom: 0.7rem;
 }
 
 body.fullscreen-mode .table-controls {

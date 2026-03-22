@@ -66,10 +66,18 @@
         <div class="field-header">
           <span data-i18n-game="ui.opponentBoard">Plateau adverse</span>
         </div>
+        <div class="field-guide opponent-guide" aria-hidden="true">
+          <div class="guide-active" data-i18n-game="ui.activeZone">Actif</div>
+          <div class="guide-bench" data-i18n-game="ui.benchZone">Banc</div>
+        </div>
         <div id="opponentBoardCardsLayer" class="opponent-board-layer"></div>
         <div id="opponentMarkerLayer" class="opponent-marker-layer" aria-hidden="true"></div>
       </section>
       <div id="boardCardsLayer" class="board-cards-layer"></div>
+      <div class="field-guide self-guide" aria-hidden="true">
+        <div class="guide-active" data-i18n-game="ui.activeZone">Actif</div>
+        <div class="guide-bench" data-i18n-game="ui.benchZone">Banc</div>
+      </div>
       <div id="markerLayer" class="marker-layer" aria-hidden="true"></div>
 
       <section class="table-controls">

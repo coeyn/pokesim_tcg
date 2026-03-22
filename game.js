@@ -239,6 +239,14 @@ function boardCellToPixel(pos, metrics = gridMetrics()) {
   }
   return { x: Number(pos?.x) || 0, y: Number(pos?.y) || 0 };
 }
+function mirrorPlacedForOpponent(pos, metrics) {
+  if (typeof pos?.gx !== 'number' || typeof pos?.gy !== 'number') return pos;
+  return {
+    ...pos,
+    gx: GRID.cols - GRID.cardCols - pos.gx,
+    gy: GRID.rows - metrics.cardRows - pos.gy,
+  };
+}
 function markerLayerMetrics(layer = e.markers) {
   const rect = layer.getBoundingClientRect();
   return { rect, width: Math.max(1, rect.width), height: Math.max(1, rect.height) };
@@ -278,10 +286,10 @@ function counters() {
 }
 function renderHand() { e.handCards.innerHTML = ''; S.hand.forEach(c => { const el = cardFace(c, 'hand-card'); el.dataset.cardId = c.id; e.handCards.appendChild(el) }); sizeHand(); saveSoon() }
 function renderBoard() { const m = gridMetrics(); const maxPlacedId = S.placed.reduce((mx, p) => Math.max(mx, Number(p.id) || 0), 0); e.board.style.setProperty('--grid-card-width', `${m.cardW}px`); e.board.innerHTML = ''; S.snap = null; S.placed.forEach(p => { const el = cardFace(p.card, 'placed-card board-card'); const coords = boardCellToPixel(p, m); el.dataset.placedId = String(p.id); el.classList.toggle('locked-shared-item', !ownsSharedItem(p)); el.style.left = `${coords.x}px`; el.style.top = `${coords.y}px`; el.style.width = `${m.cardW}px`; const ageOrder = maxPlacedId - (Number(p.id) || 0); el.style.zIndex = String(layerRank(p.card) * 100000 + ageOrder); e.board.appendChild(el) }); saveSoon() }
-function renderOpponentBoard() { if (!e.oppBoard) return; const placed = Array.isArray(MP.opponentState?.placed) ? MP.opponentState.placed : []; const m = gridMetrics(e.oppBoard); const maxPlacedId = placed.reduce((mx, p) => Math.max(mx, Number(p.id) || 0), 0); e.oppBoard.style.setProperty('--grid-card-width', `${m.cardW}px`); e.oppBoard.innerHTML = ''; placed.forEach(p => { const el = cardFace(p.card, 'placed-card board-card locked-shared-item'); const coords = boardCellToPixel(p, m); el.style.left = `${coords.x}px`; el.style.top = `${coords.y}px`; el.style.width = `${m.cardW}px`; const ageOrder = maxPlacedId - (Number(p.id) || 0); el.style.zIndex = String(layerRank(p.card) * 100000 + ageOrder); e.oppBoard.appendChild(el) }) }
+function renderOpponentBoard() { if (!e.oppBoard) return; const placed = Array.isArray(MP.opponentState?.placed) ? MP.opponentState.placed : []; const m = gridMetrics(e.oppBoard); const maxPlacedId = placed.reduce((mx, p) => Math.max(mx, Number(p.id) || 0), 0); e.oppBoard.style.setProperty('--grid-card-width', `${m.cardW}px`); e.oppBoard.innerHTML = ''; placed.forEach(p => { const el = cardFace(p.card, 'placed-card board-card locked-shared-item'); const mirrored = mirrorPlacedForOpponent(p, m); const coords = boardCellToPixel(mirrored, m); el.style.left = `${coords.x}px`; el.style.top = `${coords.y}px`; el.style.width = `${m.cardW}px`; const ageOrder = maxPlacedId - (Number(p.id) || 0); el.style.zIndex = String(layerRank(p.card) * 100000 + ageOrder); e.oppBoard.appendChild(el) }) }
 function renderDiscardTop() { e.discardTop.innerHTML = ''; const c = S.discard[S.discard.length - 1]; if (c) e.discardTop.appendChild(cardFace(c, 'placed-card')); saveSoon() }
 function renderMarkers() { e.markers.innerHTML = ''; S.markers.forEach(m => { const d = mTypes[m.type] || ['?', '']; const p = markerRelativeToPixel(m); const b = document.createElement('button'); b.type = 'button'; b.className = `marker-item ${d[1]}`; b.textContent = d[0]; b.dataset.markerId = String(m.id); b.classList.toggle('locked-shared-item', !ownsSharedItem(m)); b.style.left = `${p.x}px`; b.style.top = `${p.y}px`; e.markers.appendChild(b) }); saveSoon() }
-function renderOpponentMarkers() { if (!e.oppMarkers) return; const markers = Array.isArray(MP.opponentState?.markers) ? MP.opponentState.markers : []; e.oppMarkers.innerHTML = ''; markers.forEach(m => { const d = mTypes[m.type] || ['?', '']; const p = markerRelativeToPixel(m, e.oppMarkers); const b = document.createElement('div'); b.className = `marker-item ${d[1]} locked-shared-item`; b.textContent = d[0]; b.style.left = `${p.x}px`; b.style.top = `${p.y}px`; e.oppMarkers.appendChild(b) }) }
+function renderOpponentMarkers() { if (!e.oppMarkers) return; const markers = Array.isArray(MP.opponentState?.markers) ? MP.opponentState.markers : []; e.oppMarkers.innerHTML = ''; markers.forEach(m => { const d = mTypes[m.type] || ['?', '']; const mirrored = (typeof m?.rx === 'number' && typeof m?.ry === 'number') ? { ...m, rx: 1 - m.rx, ry: 1 - m.ry } : m; const p = markerRelativeToPixel(mirrored, e.oppMarkers); const b = document.createElement('div'); b.className = `marker-item ${d[1]} locked-shared-item`; b.textContent = d[0]; b.style.left = `${p.x}px`; b.style.top = `${p.y}px`; e.oppMarkers.appendChild(b) }) }
 function renderAll() { renderHand(); renderBoard(); renderOpponentBoard(); renderDiscardTop(); renderMarkers(); renderOpponentMarkers(); counters(); }
 
 function fakeDeck() { const a = []; for (let i = 0; i < 60; i++)a.push({ id: `F-${i + 1}`, name: `${names[rnd(names.length)]} ${rnd(100)}`, kind: 'pokemon' }); sh(a); return a }
