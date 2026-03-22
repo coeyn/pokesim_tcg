@@ -270,6 +270,16 @@ function boardCellToPixel(pos, metrics = gridMetrics()) {
   }
   return { x: Number(pos?.x) || 0, y: Number(pos?.y) || 0 };
 }
+function mirrorPlacedForOpponent(pos, targetMetrics) {
+  if (typeof pos?.gx !== 'number' || typeof pos?.gy !== 'number') return pos;
+  const sourceCardCols = GRID.cardCols + PLAYER_CARD_EXTRA_COLS;
+  const sourceCardRows = Math.round(sourceCardCols * 7 / 5);
+  return {
+    ...pos,
+    gx: GRID.cols - pos.gx - ((sourceCardCols + targetMetrics.cardCols) / 2),
+    gy: GRID.rows - pos.gy - ((sourceCardRows + targetMetrics.cardRows) / 2),
+  };
+}
 function markerLayerMetrics(layer = e.markers) {
   const rect = layer.getBoundingClientRect();
   return { rect, width: Math.max(1, rect.width), height: Math.max(1, rect.height) };
@@ -319,7 +329,8 @@ function renderOpponentBoard() {
   e.oppBoard.innerHTML = '';
   placed.forEach(p => {
     const el = cardFace(p.card, 'placed-card board-card locked-shared-item');
-    const coords = boardCellToPixel(p, m);
+    const mirrored = mirrorPlacedForOpponent(p, m);
+    const coords = boardCellToPixel(mirrored, m);
     el.dataset.opponentPlacedId = String(p.id);
     el.style.left = `${coords.x}px`;
     el.style.top = `${coords.y}px`;
