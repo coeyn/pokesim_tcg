@@ -398,6 +398,142 @@ h2 {
   cursor: default;
 }
 
+/* Landscape layout calibrated from paysage-01.svg (1920x1080).
+   We keep this as an override so portrait can be tuned independently later. */
+@media (orientation: landscape) and (min-width: 900px) {
+  .board-cards-layer,
+  .opponent-field,
+  .self-guide {
+    left: 0.9rem;
+    right: 0.9rem;
+  }
+
+  .opponent-field {
+    top: 0.9rem;
+    height: 38%;
+    min-height: 150px;
+  }
+
+  .board-cards-layer {
+    top: 42%;
+    bottom: 15%;
+  }
+
+  .self-guide {
+    top: 0.9rem;
+    bottom: 15%;
+  }
+
+  .self-guide .guide-active {
+    left: 44.75%;
+    width: 10.46%;
+    top: 43.51%;
+    height: 20.74%;
+    bottom: auto;
+  }
+
+  .self-guide .guide-bench {
+    left: 29%;
+    right: 29%;
+    top: 68.36%;
+    height: 16.13%;
+    bottom: auto;
+  }
+
+  .opponent-guide {
+    left: 0.4rem;
+    right: 0.4rem;
+    top: 0.4rem;
+    bottom: 0.4rem;
+  }
+
+  .opponent-guide .guide-active {
+    left: 44.75%;
+    width: 10.46%;
+    top: 43.51%;
+    height: 20.74%;
+  }
+
+  .opponent-guide .guide-bench {
+    left: 32.62%;
+    right: 32.62%;
+    top: 11.66%;
+    height: 12.51%;
+  }
+
+  .table-controls {
+    position: absolute;
+    inset: 0;
+    width: auto;
+    display: block;
+    pointer-events: none;
+    z-index: 30;
+  }
+
+  .table-controls > section {
+    position: absolute;
+    pointer-events: auto;
+  }
+
+  .discard-wrap {
+    left: 77.43%;
+    top: 65.24%;
+    width: 8.7%;
+  }
+
+  .deck-wrap {
+    left: 86.6%;
+    top: 65.24%;
+    width: 8.7%;
+  }
+
+  .prize-wrap {
+    left: 6.31%;
+    top: 65.24%;
+    width: 16.48%;
+  }
+
+  .prize-draw-btn {
+    width: 100%;
+  }
+
+  .marker-bag-wrap {
+    left: 95%;
+    top: 61%;
+    transform: translateX(-100%);
+  }
+
+  .hand-row {
+    left: 0;
+    right: 0;
+    bottom: 0;
+    top: 86.14%;
+    min-height: 0;
+    border-radius: 0;
+  }
+
+  body.fullscreen-mode .opponent-field {
+    left: 0.7rem;
+    right: 0.7rem;
+    top: 0.7rem;
+    height: 38%;
+  }
+
+  body.fullscreen-mode .board-cards-layer {
+    left: 0.7rem;
+    right: 0.7rem;
+    top: 42%;
+    bottom: 15%;
+  }
+
+  body.fullscreen-mode .self-guide {
+    left: 0.7rem;
+    right: 0.7rem;
+    top: 0.7rem;
+    bottom: 15%;
+  }
+}
+
 .board-card.drag-source {
   opacity: 0.35;
 }
