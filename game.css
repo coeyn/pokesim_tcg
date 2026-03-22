@@ -149,6 +149,32 @@ body.pregame .table-wrap {
   backdrop-filter: blur(6px);
 }
 
+.battle-stats {
+  position: absolute;
+  left: 0.9rem;
+  right: calc(0.9rem + var(--controls-lane));
+  top: 2.7rem;
+  z-index: 32;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.32rem;
+}
+
+.battle-stat {
+  border: 1px solid rgb(255 255 255 / 16%);
+  border-radius: 999px;
+  background: rgb(4 22 21 / 52%);
+  color: var(--ink);
+  padding: 0.2rem 0.5rem;
+  font-size: 0.72rem;
+  line-height: 1.2;
+  backdrop-filter: blur(4px);
+}
+
+.battle-stat-opponent {
+  border-color: rgb(245 170 66 / 34%);
+}
+
 .start-screen-actions {
   display: flex;
   flex-wrap: wrap;
@@ -615,6 +641,12 @@ body.fullscreen-mode .opponent-field {
   left: 0.7rem;
   right: calc(0.7rem + var(--controls-lane));
   top: 0.7rem;
+}
+
+body.fullscreen-mode .battle-stats {
+  left: 0.7rem;
+  right: calc(0.7rem + var(--controls-lane));
+  top: 2.5rem;
 }
 
 body.fullscreen-mode .self-guide {
